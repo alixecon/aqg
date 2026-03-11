@@ -68,19 +68,42 @@ export default function App() {
         <div style={{ maxWidth: 760, margin: "0 auto", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
 
           {/* Logo */}
-          <button onClick={handleRetry} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.55rem", padding: 0 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 8, background: "var(--accent-lo)", border: "1px solid rgba(64, 116, 227, 0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-hi)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-              </svg>
-            </div>
-            <span style={{ fontWeight: 800, fontSize: "0.88rem", color: "var(--text-1)", fontFamily: "Almarai, sans-serif" }}>
-              صانع الاختبارات
+<button onClick={handleRetry} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.7rem", padding: 0 }}>
+  <svg width="28" height="36" viewBox="0 0 52 66" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="1" y="1" width="50" height="64" rx="6"
+      fill={theme === "dark" ? "#111820" : "#EDF2F9"}
+      stroke={theme === "dark" ? "#1D2A3A" : "#D8E4F0"}
+      strokeWidth="1.5"/>
+    <path d="M33 1 L51 1 L51 19 L33 19 Z"
+      fill={theme === "dark" ? "#0C1118" : "#F4F7FB"}/>
+    <path d="M33 1 L51 19 L33 19 Z"
+      fill="none" stroke="var(--a)" strokeWidth="1.5"/>
+    <line x1="9" y1="28" x2="28" y2="28"
+      stroke={theme === "dark" ? "#1D2A3A" : "#D0DCEA"}
+      strokeWidth="2" strokeLinecap="round"/>
+    <line x1="9" y1="37" x2="25" y2="37"
+      stroke={theme === "dark" ? "#1D2A3A" : "#D0DCEA"}
+      strokeWidth="2" strokeLinecap="round"/>
+    <line x1="9" y1="46" x2="30" y2="46"
+      stroke={theme === "dark" ? "#1D2A3A" : "#D0DCEA"}
+      strokeWidth="2" strokeLinecap="round"/>
+    <circle cx="40" cy="50" r="14"
+      fill={theme === "dark" ? "#0C1118" : "#F4F7FB"}
+      stroke="var(--a)" strokeWidth="1.5"/>
+    <polyline points="33,50 38.5,56 47,43"
+      fill="none" stroke="var(--a)"
+      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+  <div style={{ lineHeight: 1.2 }}>
+    <span style={{ fontWeight: 800, fontSize: "0.88rem", color: "var(--t1)", fontFamily: "Almarai, sans-serif", display: "block" }}>
+      صانع الاختبارات
+    </span>
+             <span style={{ fontWeight: 400, fontSize: "0.65rem", color: "var(--a)", fontFamily: "Almarai, sans-serif", display: "block", letterSpacing: "0.04em" }}>
+      اختبر نفسك · اعرف أين تقف
             </span>
-          </button>
+              </div>
+            </button>
+          
 
           <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
             {/* Steps */}
