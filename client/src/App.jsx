@@ -78,7 +78,7 @@ export default function App() {
               </svg>
             </div>
             <span style={{ fontWeight: 800, fontSize: "0.88rem", color: "var(--text-1)", fontFamily: "Almarai, sans-serif" }}>
-              مولّد الاختبارات
+              صانع الاختبارات
             </span>
           </button>
 

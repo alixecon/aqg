@@ -35,7 +35,7 @@ export default function UploadPage({ onFileReady }) {
       setPct(100);
       try {
         const data = JSON.parse(xhr.responseText);
-        if (xhr.status !== 200) { setError(data.error || "فشل رفع الملف"); setUploading(false); return; }
+        if (xhr.status !== 200) { setError(data.error || "رفع الملف فشل، حاول مرة ثانية"); setUploading(false); return; }
         setTimeout(() => { setUploading(false); onFileReady(data); }, 300);
       } catch { setError("استجابة غير متوقعة من الخادم"); setUploading(false); }
     };
@@ -66,7 +66,7 @@ export default function UploadPage({ onFileReady }) {
           <span style={{ color: "var(--accent)" }}>في ثوانٍ</span>
         </h1>
         <p style={{ color: "var(--muted)", fontSize: "1.05rem", maxWidth: 420, margin: "0 auto" }}>
-          ارفع ملفك الدراسي — الذكاء الاصطناعي يبني الأسئلة، أنت تكتشف أين تقف
+          ارفع المحاضرات أو الدروس وخل الذكاء الاصطناعي يصيغ الأسئلة وقيم مستوى فهمك
         </p>
       </div>
 
@@ -174,7 +174,7 @@ export default function UploadPage({ onFileReady }) {
         borderTop: "1px solid var(--border)", paddingTop: "2rem",
       }}>
         {[
-          { icon: "🗑️", title: "خصوصيتك أولاً",   body: "ملفك يُحذف تلقائياً بعد توليد الاختبار مباشرةً" },
+          { icon: "🗑️", title: "خصوصيتك أولاً",   body: "ملفك يُحذف تلقائياً بعد انشاء الاختبار مباشرةً" },
           { icon: "⚡", title: "بدون تسجيل",        body: "لا حساب ولا بريد ولا كلمة مرور — ابدأ فوراً" },
           { icon: "🎯", title: "أسئلة من محتواك",   body: "الذكاء الاصطناعي يقرأ نصك ويبني أسئلة حقيقية منه" },
         ].map(c => (

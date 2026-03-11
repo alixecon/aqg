@@ -149,7 +149,7 @@ export default function ConfigPage({ session, onQuizReady, onBack }) {
               <circle cx="12" cy="12" r="10" strokeOpacity="0.25"/>
               <path d="M12 2A10 10 0 0 1 22 12"/>
             </svg>
-            الذكاء الاصطناعي يبني أسئلتك…
+            الذكاء الاصطناعي يبني اختبارك
           </>
         ) : (
           <>
