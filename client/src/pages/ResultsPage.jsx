@@ -85,7 +85,10 @@ function resolveCorrectIndex(q, isTF) {
 // ─── PDF Export (html2pdf.js — branded HTML → PDF) ───────────────────────────
 
 async function exportPDF(questions, userAnswers, grades, isSA, isTF, score, total, pct) {
-  const html2pdf = (await import("html2pdf.js")).default;
+  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+    import("html2canvas"),
+    import("jspdf").then(m => ({ jsPDF: m.jsPDF || m.default })),
+  ]);
 
   const dateStr   = new Date().toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" });
   const gradeColor = pct >= 80 ? "#15803d" : pct >= 60 ? "#b45309" : "#b91c1c";
@@ -181,30 +184,45 @@ async function exportPDF(questions, userAnswers, grades, isSA, isTF, score, tota
 
 </body></html>`;
 
+  // Append visibly off-screen — no hiding tricks that confuse canvas capture
   const container = document.createElement("div");
-  container.style.cssText = "position:absolute;top:0;left:0;width:794px;max-height:0;overflow:hidden;pointer-events:none;z-index:-9999;";
+  container.style.cssText = "position:fixed;top:0;right:-9999px;width:794px;background:#ffffff;z-index:-1;";
   container.innerHTML = html;
   document.body.appendChild(container);
-  container.style.maxHeight = "none";
-  container.style.overflow  = "visible";
 
+  // Wait for Cairo font + layout to settle
   await document.fonts.ready;
-  await new Promise((r) => setTimeout(r, 300));
+  await new Promise((r) => setTimeout(r, 500));
 
-  const dateTag = new Date().toISOString().slice(0, 10);
-  await html2pdf()
-    .set({
-      margin: [8, 8, 8, 8],
-      filename: `نتيجة-الاختبار-${dateTag}.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false, windowWidth: 794, scrollX: 0, scrollY: 0 },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      pagebreak: { mode: ["avoid-all", "css"] },
-    })
-    .from(container)
-    .save();
+  const canvas = await html2canvas(container, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: "#ffffff",
+    logging: false,
+    width: 794,
+    windowWidth: 794,
+    scrollX: 0,
+    scrollY: 0,
+  });
 
   document.body.removeChild(container);
+
+  const imgData  = canvas.toDataURL("image/jpeg", 0.97);
+  const pdf      = new jsPDF({ unit: "px", format: "a4", orientation: "portrait" });
+  const pageW    = pdf.internal.pageSize.getWidth();
+  const pageH    = pdf.internal.pageSize.getHeight();
+  const imgW     = pageW;
+  const imgH     = (canvas.height * pageW) / canvas.width;
+
+  let yOffset = 0;
+  while (yOffset < imgH) {
+    if (yOffset > 0) pdf.addPage();
+    pdf.addImage(imgData, "JPEG", 0, -yOffset, imgW, imgH);
+    yOffset += pageH;
+  }
+
+  const dateTag = new Date().toISOString().slice(0, 10);
+  pdf.save(`نتيجة-الاختبار-${dateTag}.pdf`);
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -258,7 +276,7 @@ export default function ResultsPage({ questions, userAnswers, grades, config, on
         background: "var(--ink-800)", border: "1px solid var(--border)",
         borderRadius: "var(--r2)", position: "relative", overflow: "hidden",
       }}>
-        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 300, height: 300, borderRadius: "50%", background: `radial-gradient(circle, ${color}15 0%, transparent 70%)`, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 300, height: 300, borderRadius: "50%", background: `radial-gradient(circle, ${color}28 0%, transparent 70%)`, pointerEvents: "none" }} />
 
         <div style={{ position: "relative", display: "inline-flex", marginBottom: "1.5rem" }}>
           <svg width="140" height="140" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
