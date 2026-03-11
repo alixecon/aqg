@@ -1,166 +1,222 @@
-// client/src/pages/QuizPage.jsx
-import React, { useState } from "react";
-import QuizQuestion from "../components/QuizQuestion";
+// QuizPage.jsx — تجربة الاختبار الفعلية
+// الفلسفة: لا ضجيج، الإجابة تأتي والتغذية الراجعة فورية وصادقة
+
+import React, { useState, useEffect, useRef } from "react";
 
 export default function QuizPage({ questions, config, onFinish, onBack }) {
-  const [currentIdx,  setCurrentIdx]  = useState(0);
-  const [userAnswers, setUserAnswers]  = useState({});
-  const [revealed,    setRevealed]     = useState(false); // current Q answer shown
-  const [grading,     setGrading]      = useState(false);
+  const [idx,        setIdx]        = useState(0);
+  const [answers,    setAnswers]     = useState({});
+  const [picked,     setPicked]      = useState(null);
+  const [revealed,   setRevealed]    = useState(false);
+  const [shortText,  setShortText]   = useState("");
+  const [finishing,  setFinishing]   = useState(false);
+  const textRef = useRef(null);
 
-  const total    = questions.length;
-  const currentQ = questions[currentIdx];
-  const isLast   = currentIdx === total - 1;
+  const q    = questions[idx];
+  const isMCQ = config.questionType === "mcq";
+  const isTF  = config.questionType === "truefalse";
+  const isSA  = config.questionType === "shortanswer";
+  const total = questions.length;
+  const pct   = ((idx) / total) * 100;
 
-  // Single answer handler — covers MCQ, T/F, and short-answer
-  function handleAnswer(answer) {
+  useEffect(() => { setPicked(null); setRevealed(false); setShortText(""); }, [idx]);
+
+  function choose(i) {
     if (revealed) return;
-    setUserAnswers((prev) => ({ ...prev, [currentIdx]: answer }));
-    if (currentQ.type !== "shortanswer") setRevealed(true);
+    setPicked(i); setRevealed(true);
+    setAnswers(a => ({ ...a, [idx]: { picked: i, text: null } }));
   }
 
-  // Short-answer confirm button
-  function handleConfirmShort() {
-    if (userAnswers[currentIdx] !== undefined) setRevealed(true);
+  function submitShort() {
+    if (!shortText.trim() || revealed) return;
+    setRevealed(true);
+    setAnswers(a => ({ ...a, [idx]: { picked: null, text: shortText.trim() } }));
   }
 
-  function handleNext() {
-    if (isLast) {
-      submitQuiz();
-    } else {
-      setCurrentIdx((i) => i + 1);
-      setRevealed(false);
+  async function finish() {
+    const finalAnswers = { ...answers };
+    if (revealed && isSA) finalAnswers[idx] = { picked: null, text: shortText.trim() };
+
+    setFinishing(true);
+    let grades = {};
+    const shortQs = questions
+      .map((q, i) => ({ q, i, ans: finalAnswers[i]?.text }))
+      .filter(x => x.ans);
+
+    if (shortQs.length > 0) {
+      try {
+        const res = await fetch("/api/grade", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ answers: shortQs.map(x => ({ question: x.q.question, correctAnswer: x.q.correctAnswer, userAnswer: x.ans })) }),
+        });
+        const data = await res.json();
+        if (res.ok && data.grades) {
+          shortQs.forEach((x, gi) => { grades[x.i] = data.grades[gi]; });
+        }
+      } catch {}
     }
+    onFinish(finalAnswers, grades);
   }
 
-  function handleSkip() {
-    if (isLast) submitQuiz();
-    else { setCurrentIdx((i) => i + 1); setRevealed(false); }
+  function next() {
+    if (idx < total - 1) setIdx(i => i + 1);
+    else finish();
   }
 
-  async function submitQuiz() {
-    const hasShortAnswers = questions.some((q) => q.type === "shortanswer");
-    if (!hasShortAnswers) { onFinish(userAnswers, {}); return; }
+  if (!q) return null;
 
-    setGrading(true);
-    try {
-      const res  = await fetch("/api/grade", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questions, userAnswers }),
-      });
-      const data = await res.json();
-      onFinish(userAnswers, res.ok ? (data.grades || {}) : {});
-    } catch {
-      onFinish(userAnswers, {});
-    }
-  }
-
-  const DIFF_COLORS = { easy: "#4CAF7D", medium: "#F0A500", hard: "#E05C5C" };
-  const DIFF_LABELS = { easy: "سهل", medium: "متوسط", hard: "صعب" };
-  const TYPE_LABELS = { mcq: "اختيار متعدد", truefalse: "صح أم خطأ", shortanswer: "إجابة قصيرة" };
-
-  const answeredCount = Object.keys(userAnswers).length;
-  const pct           = Math.round((answeredCount / total) * 100);
-  const remaining     = total - answeredCount;
-
-  if (grading) {
-    return (
-      <div style={{ textAlign: "center", padding: "4rem 1rem" }}>
-        <div style={{ width: 56, height: 56, border: "3px solid rgba(240,165,0,0.2)", borderTopColor: "var(--gold-500)", borderRadius: "50%", margin: "0 auto 1.5rem", animation: "spin 0.8s linear infinite" }} />
-        <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: "1.1rem" }}>جاري تقييم إجاباتك بالذكاء الاصطناعي…</p>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginTop: "0.5rem" }}>هذا قد يستغرق بضع ثوانٍ</p>
-      </div>
-    );
-  }
+  const opts   = q.options || (isTF ? ["صحيح", "خطأ"] : []);
+  const correct = isTF ? (q.correctAnswer === true || q.correctAnswer === "صحيح" ? 0 : 1) : q.correctAnswer;
 
   return (
-    <div style={{ width: "100%", maxWidth: 680, margin: "0 auto" }}>
+    <div className="anim-up" style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
 
-      {/* ── Header ───────────────────────────────────────────────────────── */}
-      <div className="animate-fade-in" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", gap: "1rem" }}>
-        <button className="btn-ghost" onClick={onBack} style={{ fontSize: "0.85rem", padding: "0.45rem 0.9rem" }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
-          </svg>
-          خروج
-        </button>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <span className="badge badge-gold">{TYPE_LABELS[config.questionType]}</span>
-          <span style={{ display: "inline-flex", alignItems: "center", padding: "0.2rem 0.75rem", borderRadius: 999, fontSize: "0.78rem", fontWeight: 700, background: `${DIFF_COLORS[config.difficulty]}18`, color: DIFF_COLORS[config.difficulty], border: `1px solid ${DIFF_COLORS[config.difficulty]}40` }}>
-            {DIFF_LABELS[config.difficulty]}
+      {/* ── Progress ── */}
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem" }}>
+          <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: "0.82rem", fontFamily: "Cairo, sans-serif", display: "flex", alignItems: "center", gap: "0.3rem", padding: 0 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+            الإعدادات
+          </button>
+          <span style={{ fontSize: "0.82rem", color: "var(--muted)", fontWeight: 700 }}>
+            سؤال {(idx + 1).toLocaleString("ar")} من {total.toLocaleString("ar")}
           </span>
+        </div>
+        <div className="progress-track">
+          <div className="progress-fill" style={{ width: `${pct}%` }} />
         </div>
       </div>
 
-      {/* ── Progress bar ─────────────────────────────────────────────────── */}
-      <div style={{ marginBottom: "1.75rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.55rem" }}>
-          <span style={{ fontSize: "0.82rem", fontWeight: 700, color: pct === 100 ? "#4CAF7D" : "var(--gold-400)", fontFamily: "Cairo, sans-serif", transition: "color 0.4s" }}>
-            {pct === 100 ? "✓ اكتملت جميع الإجابات" : `تمّت الإجابة على ${answeredCount} من ${total}`}
-          </span>
-          <span style={{ fontSize: "1rem", fontWeight: 900, color: pct === 100 ? "#4CAF7D" : "var(--gold-400)", fontFamily: "Cairo, sans-serif", transition: "color 0.4s" }}>
-            {pct}٪
-          </span>
-        </div>
-        <div style={{ height: 10, borderRadius: 999, background: "rgba(255,255,255,0.06)", overflow: "hidden", border: "1px solid rgba(245,200,66,0.1)" }}>
-          <div style={{ height: "100%", width: `${pct}%`, borderRadius: 999, background: pct === 100 ? "linear-gradient(90deg,#22c55e,#4ade80)" : "linear-gradient(90deg,var(--gold-500),var(--gold-300))", transition: "width 0.5s cubic-bezier(0.4,0,0.2,1),background 0.4s", boxShadow: pct === 100 ? "0 0 12px rgba(74,222,128,0.4)" : "0 0 10px rgba(230,168,0,0.35)" }} />
-        </div>
-        {remaining > 0 && (
-          <p style={{ marginTop: "0.45rem", fontSize: "0.75rem", color: "var(--text-muted)", textAlign: "center", fontFamily: "Cairo, sans-serif" }}>
-            {remaining === 1 ? "سؤال واحد متبقٍّ" : `${remaining} أسئلة متبقية`}
-          </p>
+      {/* ── Question card ── */}
+      <div className="card" style={{ minHeight: 120 }}>
+        {q.topic && (
+          <div style={{ marginBottom: "1rem" }}>
+            <span className="badge badge-dim">{q.topic}</span>
+          </div>
         )}
+        <p style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--white)", lineHeight: 1.65, margin: 0 }}>
+          {q.question}
+        </p>
       </div>
 
-      {/* ── Question ─────────────────────────────────────────────────────── */}
-      <QuizQuestion
-        key={currentIdx}
-        question={currentQ}
-        index={currentIdx}
-        total={total}
-        onAnswer={handleAnswer}
-        submitted={revealed}
-        userAnswer={userAnswers[currentIdx] ?? null}
-      />
+      {/* ── Options ── */}
+      {(isMCQ || isTF) && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
+          {opts.map((opt, i) => {
+            let cls = "ans";
+            if (revealed) {
+              if (i === correct) cls += " correct";
+              else if (i === picked) cls += " wrong";
+            } else if (i === picked) cls += " chosen";
 
-      {/* Short-answer confirm button */}
-      {currentQ.type === "shortanswer" && !revealed && userAnswers[currentIdx] && (
-        <button className="btn-primary animate-slide-up" onClick={handleConfirmShort}
-          style={{ marginTop: "1rem", width: "100%" }}>
-          تأكيد الإجابة
-        </button>
-      )}
-
-      {/* Explanation for MCQ/TF */}
-      {revealed && currentQ.type !== "shortanswer" && currentQ.explanation && (
-        <div className="animate-slide-up" style={{ marginTop: "1rem", padding: "0.9rem 1.1rem", background: "rgba(240,165,0,0.06)", border: "1px solid rgba(240,165,0,0.2)", borderRadius: 10, fontSize: "0.9rem", color: "var(--text-primary)", lineHeight: 1.7 }}>
-          <span style={{ fontWeight: 700, color: "var(--gold-400)" }}>💡 الشرح: </span>
-          {currentQ.explanation}
+            const labels = ["أ","ب","ج","د"];
+            return (
+              <button key={i} className={cls} onClick={() => choose(i)} disabled={revealed}>
+                <span style={{
+                  width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+                  background: "rgba(255,255,255,0.05)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: "0.75rem", fontWeight: 800,
+                }}>
+                  {revealed && i === correct ? "✓" : revealed && i === picked && i !== correct ? "✗" : labels[i] || (i === 0 ? "ص" : "خ")}
+                </span>
+                {opt}
+              </button>
+            );
+          })}
         </div>
       )}
 
-      {/* Navigation */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1.75rem", gap: "1rem" }}>
-        {!revealed && (
-          <button className="btn-ghost" onClick={handleSkip} style={{ fontSize: "0.88rem" }}>
-            تخطّي
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/>
-            </svg>
-          </button>
-        )}
-        {revealed && <div />}
-        {revealed && (
-          <button className="btn-primary animate-slide-up" onClick={handleNext}>
-            {isLast ? (
-              <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> عرض النتائج</>
-            ) : (
-              <>السؤال التالي <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></>
-            )}
-          </button>
-        )}
-      </div>
+      {/* ── Short answer ── */}
+      {isSA && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <textarea
+            ref={textRef}
+            value={shortText}
+            onChange={e => setShortText(e.target.value)}
+            disabled={revealed}
+            placeholder="اكتب إجابتك هنا…"
+            rows={3}
+            style={{
+              width: "100%", background: "var(--ink-800)",
+              border: `1px solid ${revealed ? "var(--border)" : "var(--border-hi)"}`,
+              borderRadius: "var(--r)", padding: "1rem",
+              color: "var(--white)", fontFamily: "Cairo, sans-serif",
+              fontSize: "0.95rem", resize: "vertical", outline: "none",
+              direction: "rtl", lineHeight: 1.7,
+              transition: "border-color 0.2s",
+            }}
+          />
+          {!revealed && (
+            <button onClick={submitShort} disabled={!shortText.trim()} className="btn btn-accent" style={{ alignSelf: "flex-start" }}>
+              تحقق من إجابتي
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── Feedback after reveal ── */}
+      {revealed && (
+        <div className="anim-fade" style={{
+          padding: "1.1rem 1.35rem",
+          background: isSA ? "var(--ink-800)" : picked === correct ? "rgba(61,191,122,0.07)" : "rgba(224,92,92,0.07)",
+          border: `1px solid ${isSA ? "var(--border)" : picked === correct ? "rgba(61,191,122,0.3)" : "rgba(224,92,92,0.25)"}`,
+          borderRadius: "var(--r)",
+        }}>
+          {isSA ? (
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--muted)", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                الإجابة النموذجية
+              </div>
+              <div style={{ fontSize: "0.92rem", color: "var(--white)", lineHeight: 1.65 }}>
+                {q.correctAnswer}
+              </div>
+            </div>
+          ) : (
+            <div>
+              {picked === correct ? (
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: q.explanation ? "0.65rem" : 0 }}>
+                  <span style={{ color: "#3DBF7A", fontSize: "1rem" }}>✓</span>
+                  <span style={{ fontWeight: 700, color: "#3DBF7A", fontSize: "0.9rem" }}>إجابة صحيحة</span>
+                </div>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: q.explanation ? "0.65rem" : 0 }}>
+                  <span style={{ color: "#E05C5C", fontSize: "1rem" }}>✗</span>
+                  <span style={{ fontWeight: 700, color: "#E05C5C", fontSize: "0.9rem" }}>
+                    الإجابة الصحيحة: {opts[correct]}
+                  </span>
+                </div>
+              )}
+              {q.explanation && (
+                <p style={{ margin: 0, fontSize: "0.87rem", color: "var(--muted)", lineHeight: 1.65, borderTop: "1px solid var(--border)", paddingTop: "0.65rem" }}>
+                  {q.explanation}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Next / Finish ── */}
+      {revealed && (
+        <button onClick={next} disabled={finishing} className="btn btn-accent anim-up"
+          style={{ width: "100%", padding: "1rem", fontSize: "1.02rem", borderRadius: "var(--r2)" }}>
+          {finishing ? (
+            <>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="anim-spin">
+                <circle cx="12" cy="12" r="10" strokeOpacity="0.25"/>
+                <path d="M12 2A10 10 0 0 1 22 12"/>
+              </svg>
+              جاري احتساب النتائج…
+            </>
+          ) : idx < total - 1 ? (
+            <>
+              السؤال التالي
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </>
+          ) : "اعرض نتائجي"}
+        </button>
+      )}
     </div>
   );
 }
