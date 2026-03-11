@@ -1,229 +1,238 @@
+/* ══════════════════════════════════════════════════════════════════════
+   FOCUS-FIRST DESIGN SYSTEM
+   المرجع العلمي:
+   — Kwallek et al. (1988): الأزرق يعزز الأداء المعرفي
+   — Columbia University: البيئات الزرقاء تحسّن التركيز على المهام المعقدة
+   — Wright (Color Psychology): الأخضر = توازن + تخفيف إجهاد الشاشة
+   — Mehta & Zhu (2009): اللون يؤثر على جودة المعالجة المعرفية
+   
+   المبادئ التصميمية:
+   1. لون واحد بارز فقط — أخضر مكتوم (sage green)
+   2. تشبّع منخفض في كل الألوان — يقلل الحِمل المعرفي
+   3. خلفية أزرق-رمادي داكنة — مستوحاة من أدوات الأبحاث الأكاديمية
+   4. لا ضجيج بصري — لا تدرّجات زخرفية، لا ظلال مبالغة
+   5. هرمية نصية صارمة — المعلومة تتكلم بلا منازع
+   ══════════════════════════════════════════════════════════════════════ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ══════════════════════════════════════════════════════════════════
-   FONT: Almarai — هندسي، نظيف، عربي أصيل
-   الثيم: أزرق داكن أكاديمي (dark) + أبيض رسمي (light)
-   قاعدة: اللون الواحد البارز فقط = زر الفعل
-══════════════════════════════════════════════════════════════════ */
-
 :root {
-  /* ── Dark theme (default) ── */
-  --bg-0:      #060D18;
-  --bg-1:      #0B1525;
-  --bg-2:      #101E30;
-  --bg-3:      #162438;
-  --bg-4:      #1E2F47;
+  /* ── Dark: أزرق-رمادي داكن أكاديمي ── */
+  --s0: #0C1118;
+  --s1: #111820;
+  --s2: #172030;   /* سطح الكروت */
+  --s3: #1D2A3A;
+  --s4: #243346;
 
-  --text-1:    #E8EEF7;
-  --text-2:    #8AA0BC;
-  --text-3:    #3D5470;
+  --t1: #C8DAF0;   /* نص رئيسي — أبيض بارد، لا يُجهد العين */
+  --t2: #5A7A9A;   /* نص ثانوي */
+  --t3: #2E4A62;   /* نص خافت */
 
-  --border-1:  rgba(255,255,255,0.07);
-  --border-2:  rgba(255,255,255,0.13);
+  --bd: rgba(200,218,240,0.07);   /* حدود خفية */
+  --bh: rgba(200,218,240,0.13);   /* حدود عند التفاعل */
 
-  /* الأكسنت الوحيد — برتقالي دافئ */
-  --accent:    #E07A30;
-  --accent-hi: #F5924A;
-  --accent-lo: rgba(224,122,48,0.1);
-  --accent-glow: rgba(224,122,48,0.28);
+  /* الأكسنت الوحيد — Sage Green
+     مستوحى من الدراسات: الأخضر المكتوم يقلل إجهاد العين
+     ويُعزز التركيز المستدام في جلسات الشاشة الطويلة */
+  --a:    #2A9D6F;
+  --ah:   #33BA84;
+  --al:   rgba(42,157,111,0.1);
+  --ag:   rgba(42,157,111,0.22);
 
-  --green:  #3DBF7A;
-  --red:    #E05C5C;
+  /* Semantic */
+  --ok:   #2A9D6F;
+  --err:  #C0504A;
+  --warn: #C07A2A;
 
-  --r:  10px;
-  --r2: 18px;
-  --shadow: 0 2px 16px rgba(0,0,0,0.35);
+  --r:  9px;
+  --r2: 16px;
 }
 
-/* ── Light theme ── */
+/* ── Light mode ── */
 [data-theme="light"] {
-  --bg-0:      #F0F4FA;
-  --bg-1:      #FAFBFD;
-  --bg-2:      #FFFFFF;
-  --bg-3:      #EDF1F9;
-  --bg-4:      #E2E9F5;
+  --s0: #F4F7FB;
+  --s1: #FFFFFF;
+  --s2: #FFFFFF;
+  --s3: #EDF2F9;
+  --s4: #E2EAF5;
 
-  --text-1:    #0D1E35;
-  --text-2:    #4A6280;
-  --text-3:    #9BAFC8;
+  --t1: #0E1D2E;
+  --t2: #4A6A88;
+  --t3: #A0B8D0;
 
-  --border-1:  rgba(13,30,53,0.08);
-  --border-2:  rgba(13,30,53,0.15);
+  --bd: rgba(14,29,46,0.08);
+  --bh: rgba(14,29,46,0.16);
 
-  --accent:    #3fafeb;
-  --accent-hi: #86a5be;
-  --accent-lo: rgba(212,106,32,0.09);
-  --accent-glow: rgba(212,106,32,0.22);
-
-  --shadow: 0 2px 16px rgba(13,30,53,0.1);
+  --a:  #228B5E;
+  --ah: #2AA870;
+  --al: rgba(34,139,94,0.08);
+  --ag: rgba(34,139,94,0.18);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 html { direction: rtl; scroll-behavior: smooth; }
 
 body {
   font-family: "Almarai", sans-serif;
-  background: var(--bg-0);
-  color: var(--text-1);
+  background: var(--s0);
+  color: var(--t1);
   min-height: 100vh;
   line-height: 1.75;
   -webkit-font-smoothing: antialiased;
-  transition: background 0.25s ease, color 0.25s ease;
+  transition: background 0.22s, color 0.22s;
 }
 
-/* Grain — خفيف جداً في الداكن، مخفي في الفاتح */
-body::before {
-  content: "";
-  position: fixed; inset: 0; pointer-events: none; z-index: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.02'/%3E%3C/svg%3E");
-}
-[data-theme="light"] body::before { opacity: 0; }
-
-#root { position: relative; z-index: 1; }
+#root { position: relative; }
 
 ::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--bg-1); }
-::-webkit-scrollbar-thumb { background: var(--bg-4); border-radius: 2px; }
+::-webkit-scrollbar-track { background: var(--s1); }
+::-webkit-scrollbar-thumb { background: var(--s4); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--a); }
 
-h1,h2,h3,h4 { font-family: "Almarai", sans-serif; line-height: 1.25; font-weight: 800; }
+h1,h2,h3,h4 {
+  font-family: "Almarai", sans-serif;
+  line-height: 1.25; font-weight: 800;
+  color: var(--t1);
+}
 
-/* ═══════════ CARD ═══════════ */
+/* ══════ CARD ══════ */
 .card {
-  background: var(--bg-2);
-  border: 1px solid var(--border-1);
+  background: var(--s2);
+  border: 1px solid var(--bd);
   border-radius: var(--r2);
   padding: 2.25rem;
   position: relative;
   overflow: hidden;
-  box-shadow: var(--shadow);
-  transition: background 0.25s, border-color 0.25s;
+  transition: background 0.22s, border-color 0.22s;
 }
 .card-sm { padding: 1.5rem; border-radius: var(--r); }
 
-/* ═══════════ BUTTONS ═══════════ */
+/* ══════ BUTTONS ══════ */
 .btn {
   display: inline-flex; align-items: center; justify-content: center;
   gap: 0.5rem; font-family: "Almarai", sans-serif;
-  font-weight: 700; font-size: 0.95rem;
-  padding: 0.8rem 1.75rem; border-radius: var(--r);
-  border: none; cursor: pointer;
-  transition: all 0.18s ease;
+  font-weight: 700; font-size: 0.93rem;
+  padding: 0.78rem 1.65rem; border-radius: var(--r);
+  border: none; cursor: pointer; transition: all 0.16s ease;
+  letter-spacing: 0.01em;
 }
+
+/* CTA الوحيد — أخضر مكتوم */
 .btn-accent {
-  background: var(--accent); color: #fff;
-  box-shadow: 0 2px 18px var(--accent-glow);
+  background: var(--a); color: #fff;
+  box-shadow: 0 1px 12px var(--ag);
 }
 .btn-accent:hover:not(:disabled) {
-  background: var(--accent-hi);
-  box-shadow: 0 4px 28px var(--accent-glow);
+  background: var(--ah);
+  box-shadow: 0 3px 22px var(--ag);
   transform: translateY(-1px);
 }
-.btn-accent:active:not(:disabled) { transform: translateY(0); }
-.btn-accent:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-accent:active:not(:disabled) { transform: none; }
+.btn-accent:disabled { opacity: 0.32; cursor: not-allowed; }
 
 .btn-ghost {
-  background: transparent; color: var(--text-2);
-  border: 1px solid var(--border-1);
+  background: transparent; color: var(--t2);
+  border: 1px solid var(--bd);
 }
-.btn-ghost:hover { border-color: var(--border-2); color: var(--text-1); background: var(--bg-3); }
+.btn-ghost:hover { border-color: var(--bh); color: var(--t1); background: var(--s3); }
 
-/* Theme toggle */
 .btn-theme {
-  width: 38px; height: 38px; padding: 0;
-  border-radius: 999px;
-  background: var(--bg-3);
-  border: 1px solid var(--border-1);
-  color: var(--text-2);
-  cursor: pointer;
+  width: 36px; height: 36px; padding: 0;
+  border-radius: 999px; border: 1px solid var(--bd);
+  background: var(--s3); color: var(--t2); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: all 0.2s;
+  transition: all 0.18s;
 }
-.btn-theme:hover { border-color: var(--border-2); color: var(--text-1); }
+.btn-theme:hover { border-color: var(--bh); color: var(--t1); }
 
-/* ═══════════ DROP ZONE ═══════════ */
+/* ══════ DROP ZONE ══════ */
 .drop-zone {
-  border: 1.5px dashed var(--border-2);
-  border-radius: var(--r2);
-  padding: 4rem 2rem; text-align: center; cursor: pointer;
-  transition: all 0.2s ease;
-  background: transparent;
+  border: 1.5px dashed var(--bh);
+  border-radius: var(--r2); padding: 4.5rem 2rem;
+  text-align: center; cursor: pointer;
+  transition: all 0.18s; background: transparent;
 }
 .drop-zone:hover, .drop-zone.over {
-  border-color: var(--accent);
-  background: var(--accent-lo);
+  border-color: var(--a); background: var(--al);
 }
 .drop-zone.done {
-  border-style: solid;
-  border-color: rgba(61,191,122,0.5);
-  background: rgba(61,191,122,0.04);
+  border-style: solid; border-color: rgba(42,157,111,0.45);
+  background: rgba(42,157,111,0.04);
 }
 
-/* ═══════════ PROGRESS ═══════════ */
-.progress-track { height: 3px; border-radius: 2px; background: var(--bg-4); overflow: hidden; }
-.progress-fill  { height: 100%; border-radius: 2px; background: var(--accent); transition: width 0.35s ease; }
+/* ══════ PROGRESS ══════ */
+.progress-track { height: 2px; border-radius: 2px; background: var(--s4); overflow: hidden; }
+.progress-fill  { height: 100%; border-radius: 2px; background: var(--a); transition: width 0.32s ease; }
 
-/* ═══════════ ANSWER OPTIONS ═══════════ */
+/* ══════ ANSWER OPTIONS ══════ */
 .ans {
   width: 100%; text-align: right;
-  padding: 1rem 1.25rem; border-radius: var(--r);
-  border: 1px solid var(--border-1);
-  background: var(--bg-3);
-  color: var(--text-1);
-  font-family: "Almarai", sans-serif;
-  font-size: 0.95rem; font-weight: 400;
-  cursor: pointer; transition: all 0.15s ease;
+  padding: 1rem 1.2rem; border-radius: var(--r);
+  border: 1px solid var(--bd); background: var(--s3);
+  color: var(--t1); font-family: "Almarai", sans-serif;
+  font-size: 0.93rem; font-weight: 400;
+  cursor: pointer; transition: all 0.14s ease;
   display: flex; align-items: center; gap: 0.75rem;
 }
-.ans:hover:not(:disabled) { border-color: var(--border-2); background: var(--bg-4); transform: translateX(-2px); }
-.ans.chosen  { border-color: var(--accent);              background: var(--accent-lo);             color: var(--accent-hi); }
-.ans.correct { border-color: rgba(61,191,122,0.5);       background: rgba(61,191,122,0.08);         color: #3DBF7A; }
-.ans.wrong   { border-color: rgba(224,92,92,0.4);        background: rgba(224,92,92,0.06);          color: #E05C5C; }
+.ans:hover:not(:disabled) {
+  border-color: var(--bh); background: var(--s4);
+  transform: translateX(-2px);
+}
+.ans.chosen  { border-color: var(--a);              background: var(--al); color: var(--ah); }
+.ans.correct { border-color: rgba(42,157,111,0.55); background: rgba(42,157,111,0.08); color: var(--ah); }
+.ans.wrong   { border-color: rgba(192,80,74,0.45);  background: rgba(192,80,74,0.06);  color: #D97070; }
 .ans:disabled { cursor: default; }
 
-/* ═══════════ PILLS ═══════════ */
+/* ══════ PILLS ══════ */
 .pill {
-  padding: 0.42rem 1rem; border-radius: 999px;
-  border: 1px solid var(--border-1); background: var(--bg-3);
-  color: var(--text-2); font-family: "Almarai", sans-serif;
-  font-weight: 700; font-size: 0.88rem; cursor: pointer;
-  transition: all 0.15s; white-space: nowrap;
+  padding: 0.4rem 1rem; border-radius: 999px;
+  border: 1px solid var(--bd); background: var(--s3);
+  color: var(--t2); font-family: "Almarai", sans-serif;
+  font-weight: 700; font-size: 0.87rem; cursor: pointer;
+  transition: all 0.14s; white-space: nowrap;
 }
-.pill:hover:not(:disabled) { border-color: var(--border-2); color: var(--text-1); }
-.pill.on { background: var(--accent-lo); border-color: var(--accent); color: var(--accent-hi); }
+.pill:hover:not(:disabled) { border-color: var(--bh); color: var(--t1); }
+.pill.on { background: var(--al); border-color: var(--a); color: var(--ah); }
 
-/* ═══════════ BADGE ═══════════ */
+/* ══════ BADGE ══════ */
 .badge {
   display: inline-flex; align-items: center;
-  padding: 0.18rem 0.65rem; border-radius: 999px;
-  font-size: 0.73rem; font-weight: 700;
+  padding: 0.16rem 0.6rem; border-radius: 999px;
+  font-size: 0.72rem; font-weight: 700;
 }
-.badge-accent { background: var(--accent-lo); color: var(--accent-hi); border: 1px solid rgba(224,122,48,0.25); }
-.badge-green  { background: rgba(61,191,122,0.1); color: #3DBF7A; border: 1px solid rgba(61,191,122,0.25); }
-.badge-dim    { background: var(--bg-3); color: var(--text-2); border: 1px solid var(--border-1); }
+.badge-a   { background: var(--al); color: var(--ah); border: 1px solid rgba(42,157,111,0.22); }
+.badge-dim { background: var(--s3); color: var(--t2); border: 1px solid var(--bd); }
+.badge-ok  { background: rgba(42,157,111,0.1); color: var(--ah); border: 1px solid rgba(42,157,111,0.22); }
+.badge-err { background: rgba(192,80,74,0.08); color: #D97070; border: 1px solid rgba(192,80,74,0.2); }
 
-/* ═══════════ ALERT ═══════════ */
+/* ══════ ALERT ══════ */
 .alert-err {
-  background: rgba(224,92,92,0.07); border: 1px solid rgba(224,92,92,0.22);
-  border-radius: var(--r); padding: 1rem 1.25rem;
-  color: #E05C5C; font-size: 0.9rem;
-  display: flex; align-items: flex-start; gap: 0.75rem;
+  background: rgba(192,80,74,0.07); border: 1px solid rgba(192,80,74,0.2);
+  border-radius: var(--r); padding: 0.9rem 1.2rem;
+  color: #D97070; font-size: 0.88rem;
+  display: flex; align-items: flex-start; gap: 0.7rem;
 }
 
-/* ═══════════ ANIMATIONS ═══════════ */
-@keyframes up   { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+/* ══════ DIVIDER ══════ */
+.divider { height: 1px; background: var(--bd); margin: 1.5rem 0; }
+
+/* ══════ FOCUS LINE — حدود يسرى تُشير للأهمية ══════ */
+.focus-line {
+  border-right: 2px solid var(--a);
+  padding-right: 1rem;
+  margin-right: -1rem;
+}
+
+/* ══════ ANIMATIONS — خفيفة لا مُشتِّتة ══════ */
+@keyframes up   { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
 @keyframes fade { from { opacity:0; } to { opacity:1; } }
 @keyframes spin { to { transform:rotate(360deg); } }
-@keyframes beat { 0%,100%{opacity:1;} 50%{opacity:.4;} }
-@keyframes glow { 0%,100%{box-shadow:0 2px 18px var(--accent-glow);} 50%{box-shadow:0 4px 36px var(--accent-glow);} }
 
-.anim-up   { animation: up   0.42s cubic-bezier(.16,1,.3,1) both; }
-.anim-fade { animation: fade 0.3s  ease both; }
-.anim-spin { animation: spin 0.85s linear infinite; }
-.anim-beat { animation: beat 1.8s  ease-in-out infinite; }
-.anim-glow { animation: glow 2.5s  ease-in-out infinite; }
+.anim-up   { animation: up   0.4s  cubic-bezier(.16,1,.3,1) both; }
+.anim-fade { animation: fade 0.28s ease both; }
+.anim-spin { animation: spin 0.8s  linear infinite; }
 
-.d1{animation-delay:.06s;} .d2{animation-delay:.12s;}
-.d3{animation-delay:.18s;} .d4{animation-delay:.24s;}
+.d1{animation-delay:.05s;} .d2{animation-delay:.1s;}
+.d3{animation-delay:.15s;} .d4{animation-delay:.2s;}
