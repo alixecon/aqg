@@ -41,7 +41,8 @@ router.post(
     }
 
     const filePath    = req.file.path;
-    const originalName = req.file.originalname;
+    // Fix: multer reads originalname as latin1 — decode to UTF-8 for Arabic filenames
+    const originalName = Buffer.from(req.file.originalname, "latin1").toString("utf8");
     const extension   = path.extname(originalName).toLowerCase();
 
     try {

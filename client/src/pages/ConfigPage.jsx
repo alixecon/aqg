@@ -1,24 +1,23 @@
-// ConfigPage.jsx — خطوة منفصلة بعد رفع الملف
-// الفلسفة: المستخدم قرّر بالفعل (رفع الملف) — هنا نُقلّل الاحتكاك فقط
-
 import React, { useState } from "react";
 
 const TYPES = [
-  { v: "mcq",         label: "اختيار متعدد",  desc: "٤ خيارات، إجابة واحدة صحيحة",   icon: "◎" },
-  { v: "truefalse",   label: "صح أم خطأ",     desc: "اختبر الفهم العام للمفاهيم",     icon: "⊕" },
-  { v: "shortanswer", label: "إجابة قصيرة",   desc: "إجابات مفتوحة، تقييم بالذكاء الاصطناعي", icon: "✏" },
+  { v: "mcq",         icon: "◎", label: "اختيار متعدد",  desc: "٤ خيارات — إجابة واحدة صحيحة" },
+  { v: "truefalse",   icon: "⊕", label: "صح أم خطأ",     desc: "اختبر الفهم العام للمفاهيم" },
+  { v: "shortanswer", icon: "✏", label: "إجابة قصيرة",   desc: "إجابات مفتوحة بتقييم الذكاء الاصطناعي" },
 ];
+
 const COUNTS = [5, 10, 15, 20];
-const DIFFS  = [
-  { v: "easy",   label: "سهل",    note: "مفاهيم أساسية",         color: "#3DBF7A" },
-  { v: "medium", label: "متوسط", note: "مزيج من الفهم والتطبيق", color: "var(--accent)" },
-  { v: "hard",   label: "صعب",   note: "تحليل ونقد عميق",        color: "#E05C5C" },
+
+const DIFFS = [
+  { v: "easy",   label: "سهل",    note: "مفاهيم أساسية",           color: "#2A9D6F" },
+  { v: "medium", label: "متوسط",  note: "فهم وتطبيق",              color: "#C07A2A" },
+  { v: "hard",   label: "صعب",    note: "تحليل عميق",              color: "#C0504A" },
 ];
 
 export default function ConfigPage({ session, onQuizReady, onBack }) {
-  const [type,   setType]   = useState("mcq");
-  const [count,  setCount]  = useState(10);
-  const [diff,   setDiff]   = useState("medium");
+  const [type,    setType]    = useState("mcq");
+  const [count,   setCount]   = useState(10);
+  const [diff,    setDiff]    = useState("medium");
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
 
@@ -38,122 +37,205 @@ export default function ConfigPage({ session, onQuizReady, onBack }) {
     }
   }
 
-  const DIFF_COLOR = DIFFS.find(d => d.v === diff)?.color || "var(--accent)";
-  const EST_MINS   = Math.ceil(count * 1.5);
+  const estMins = Math.ceil(count * 1.5);
 
   return (
-    <div className="anim-up" style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+    <div className="anim-up" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
-      {/* ── File badge ── */}
-      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.9rem 1.2rem", background: "var(--ink-800)", border: "1px solid var(--border)", borderRadius: "var(--r)" }}>
-        <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(61,191,122,0.1)", border: "1px solid rgba(61,191,122,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <span style={{ color: "#3DBF7A" }}>✓</span>
-        </div>
+      {/* ── شارة الملف ── */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: "0.85rem",
+        padding: "0.9rem 1.1rem",
+        background: "var(--s2)", border: "1px solid var(--bd)",
+        borderRadius: "var(--r)",
+      }}>
+        <div style={{
+          width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+          background: "rgba(42,157,111,0.1)", border: "1px solid rgba(42,157,111,0.25)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "#2A9D6F", fontWeight: 900, fontSize: "0.9rem",
+        }}>✓</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: "0.88rem", color: "var(--white)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <div style={{
+            fontWeight: 700, fontSize: "0.88rem", color: "var(--t1)",
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
             {session?.fileName || "الملف المرفوع"}
           </div>
-          <div style={{ fontSize: "0.75rem", color: "var(--muted)" }}>
-            تم استخراج النص بنجاح · {session?.charCount?.toLocaleString("ar")} حرف
+          <div style={{ fontSize: "0.75rem", color: "var(--t2)", marginTop: "0.1rem" }}>
+            تم استخراج النص · {session?.charCount?.toLocaleString("ar-SA")} حرف
           </div>
         </div>
-        <button onClick={onBack} className="btn btn-ghost" style={{ padding: "0.4rem 0.9rem", fontSize: "0.82rem", flexShrink: 0 }}>
+        <button onClick={onBack} className="btn btn-ghost"
+          style={{ padding: "0.35rem 0.85rem", fontSize: "0.8rem", flexShrink: 0 }}>
           تغيير
         </button>
       </div>
 
       {/* ── نوع الأسئلة ── */}
       <div>
-        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, color: "var(--muted)", marginBottom: "0.85rem", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+        <label style={{
+          display: "block", fontSize: "0.75rem", fontWeight: 700,
+          color: "var(--t2)", marginBottom: "0.75rem",
+          textTransform: "uppercase", letterSpacing: "0.08em",
+        }}>
           نوع الأسئلة
         </label>
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.55rem" }}>
-          {TYPES.map(t => (
-            <button key={t.v} onClick={() => setType(t.v)} style={{
-              display: "flex", alignItems: "center", gap: "1rem",
-              padding: "1rem 1.25rem", borderRadius: "var(--r)",
-              border: `1px solid ${type === t.v ? "var(--accent)" : "var(--border)"}`,
-              background: type === t.v ? "var(--accent-lo)" : "var(--ink-800)",
-              cursor: "pointer", transition: "all 0.15s", textAlign: "right",
-            }}>
-              <span style={{ fontSize: "1.2rem", opacity: type === t.v ? 1 : 0.4, color: type === t.v ? "var(--accent-hi)" : "var(--muted)", flexShrink: 0 }}>{t.icon}</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: "0.92rem", color: type === t.v ? "var(--white)" : "var(--muted)", fontFamily: "Cairo, sans-serif", marginBottom: "0.15rem" }}>{t.label}</div>
-                <div style={{ fontSize: "0.76rem", color: "var(--muted)", fontFamily: "Cairo, sans-serif" }}>{t.desc}</div>
-              </div>
-              <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${type === t.v ? "var(--accent)" : "var(--border)"}`, background: type === t.v ? "var(--accent)" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                {type === t.v && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff" }} />}
-              </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          {TYPES.map(t => {
+            const active = type === t.v;
+            return (
+              <button key={t.v} onClick={() => setType(t.v)} style={{
+                display: "flex", alignItems: "center", gap: "0.9rem",
+                padding: "0.9rem 1.1rem", borderRadius: "var(--r)",
+                border: `1px solid ${active ? "var(--a)" : "var(--bd)"}`,
+                background: active ? "var(--al)" : "var(--s3)",
+                cursor: "pointer", transition: "all 0.14s", textAlign: "right",
+                width: "100%",
+              }}>
+                {/* Radio dot */}
+                <div style={{
+                  width: 18, height: 18, borderRadius: "50%", flexShrink: 0,
+                  border: `2px solid ${active ? "var(--a)" : "var(--bd)"}`,
+                  background: active ? "var(--a)" : "transparent",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "all 0.14s",
+                }}>
+                  {active && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff" }} />}
+                </div>
+                {/* Text */}
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    fontFamily: "Almarai, sans-serif", fontWeight: 700,
+                    fontSize: "0.9rem",
+                    color: active ? "var(--t1)" : "var(--t2)",
+                    marginBottom: "0.15rem",
+                    transition: "color 0.14s",
+                  }}>
+                    {t.label}
+                  </div>
+                  <div style={{ fontFamily: "Almarai, sans-serif", fontSize: "0.75rem", color: "var(--t3)" }}>
+                    {t.desc}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── عدد الأسئلة ── */}
+      <div>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+          <label style={{
+            fontSize: "0.75rem", fontWeight: 700, color: "var(--t2)",
+            textTransform: "uppercase", letterSpacing: "0.08em",
+          }}>
+            عدد الأسئلة
+          </label>
+          <span style={{ fontSize: "0.75rem", color: "var(--t3)" }}>
+            ~{estMins} دقيقة
+          </span>
+        </div>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          {COUNTS.map(n => (
+            <button key={n} onClick={() => setCount(n)}
+              className={`pill${count === n ? " on" : ""}`}
+              style={{ flex: 1, textAlign: "center", padding: "0.55rem 0" }}>
+              {n}
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── عدد الأسئلة + صعوبة ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
-
-        <div>
-          <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, color: "var(--muted)", marginBottom: "0.85rem", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-            عدد الأسئلة
-          </label>
-          <div style={{ display: "flex", gap: "0.45rem", flexWrap: "wrap" }}>
-            {COUNTS.map(n => (
-              <button key={n} onClick={() => setCount(n)} className={`pill${count === n ? " on" : ""}`}
-                style={{ minWidth: 52, textAlign: "center" }}>
-                {n}
-              </button>
-            ))}
-          </div>
-          <div style={{ marginTop: "0.75rem", fontSize: "0.78rem", color: "var(--muted)" }}>
-            ~{EST_MINS} دقيقة للإكمال
-          </div>
-        </div>
-
-        <div>
-          <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, color: "var(--muted)", marginBottom: "0.85rem", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-            مستوى الصعوبة
-          </label>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-            {DIFFS.map(d => (
+      {/* ── مستوى الصعوبة ── */}
+      <div>
+        <label style={{
+          display: "block", fontSize: "0.75rem", fontWeight: 700,
+          color: "var(--t2)", marginBottom: "0.75rem",
+          textTransform: "uppercase", letterSpacing: "0.08em",
+        }}>
+          مستوى الصعوبة
+        </label>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          {DIFFS.map(d => {
+            const active = diff === d.v;
+            return (
               <button key={d.v} onClick={() => setDiff(d.v)} style={{
-                display: "flex", alignItems: "center", gap: "0.6rem",
-                padding: "0.55rem 0.9rem", borderRadius: "var(--r)",
-                border: `1px solid ${diff === d.v ? d.color : "var(--border)"}`,
-                background: diff === d.v ? `${d.color}18` : "var(--ink-800)",
-                cursor: "pointer", transition: "all 0.15s",
+                flex: 1, display: "flex", flexDirection: "column",
+                alignItems: "center", gap: "0.4rem",
+                padding: "0.75rem 0.5rem", borderRadius: "var(--r)",
+                border: `1px solid ${active ? d.color + "80" : "var(--bd)"}`,
+                background: active ? d.color + "14" : "var(--s3)",
+                cursor: "pointer", transition: "all 0.14s",
               }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: d.color, flexShrink: 0 }} />
-                <span style={{ fontFamily: "Cairo, sans-serif", fontWeight: 700, fontSize: "0.88rem", color: diff === d.v ? "var(--white)" : "var(--muted)" }}>{d.label}</span>
+                <div style={{
+                  width: 8, height: 8, borderRadius: "50%",
+                  background: active ? d.color : "var(--t3)",
+                  transition: "background 0.14s",
+                }} />
+                <span style={{
+                  fontFamily: "Almarai, sans-serif",
+                  fontWeight: 700, fontSize: "0.88rem",
+                  color: active ? "var(--t1)" : "var(--t2)",
+                  transition: "color 0.14s",
+                }}>
+                  {d.label}
+                </span>
+                <span style={{ fontFamily: "Almarai, sans-serif", fontSize: "0.68rem", color: "var(--t3)", textAlign: "center", lineHeight: 1.4 }}>
+                  {d.note}
+                </span>
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
+      </div>
+
+      {/* ── ملخص ── */}
+      <div style={{
+        padding: "0.8rem 1.1rem",
+        background: "var(--s3)", border: "1px solid var(--bd)",
+        borderRadius: "var(--r)",
+        display: "flex", alignItems: "center",
+        gap: "0.5rem", flexWrap: "wrap",
+        fontSize: "0.78rem", color: "var(--t2)",
+      }}>
+        <span>ستحصل على</span>
+        <span style={{ color: "var(--ah)", fontWeight: 700 }}>{count} سؤال</span>
+        <span>·</span>
+        <span style={{ color: "var(--ah)", fontWeight: 700 }}>
+          {TYPES.find(t => t.v === type)?.label}
+        </span>
+        <span>·</span>
+        <span style={{ color: "var(--ah)", fontWeight: 700 }}>
+          {DIFFS.find(d => d.v === diff)?.label}
+        </span>
       </div>
 
       {/* Error */}
       {error && (
         <div className="alert-err anim-fade">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
           <span>{error}</span>
         </div>
       )}
 
-      {/* ── Generate CTA ── */}
-      <button onClick={generate} disabled={loading} className="btn btn-accent anim-glow"
-        style={{ width: "100%", fontSize: "1.05rem", padding: "1.05rem", borderRadius: "var(--r2)", marginTop: "0.5rem" }}>
+      {/* ── CTA ── */}
+      <button onClick={generate} disabled={loading} className="btn btn-accent"
+        style={{ width: "100%", padding: "1rem", fontSize: "1rem", borderRadius: "var(--r2)", marginTop: "0.25rem" }}>
         {loading ? (
           <>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="anim-spin">
-              <circle cx="12" cy="12" r="10" strokeOpacity="0.25"/>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="anim-spin">
+              <circle cx="12" cy="12" r="10" strokeOpacity="0.2"/>
               <path d="M12 2A10 10 0 0 1 22 12"/>
             </svg>
             الذكاء الاصطناعي يبني اختبارك
           </>
         ) : (
           <>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
             ابدأ الاختبار
@@ -162,7 +244,7 @@ export default function ConfigPage({ session, onQuizReady, onBack }) {
       </button>
 
       {loading && (
-        <p className="anim-fade" style={{ textAlign: "center", color: "var(--muted)", fontSize: "0.8rem", marginTop: "-1rem" }}>
+        <p className="anim-fade" style={{ textAlign: "center", color: "var(--t3)", fontSize: "0.78rem", marginTop: "-0.75rem" }}>
           عادةً أقل من ٣٠ ثانية
         </p>
       )}
