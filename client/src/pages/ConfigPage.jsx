@@ -29,6 +29,7 @@ export default function ConfigPage({ session, onQuizReady, onBack }) {
         body: JSON.stringify({ sessionId: session.sessionId, questionType: type, questionCount: count, difficulty: diff }),
       });
       const data = await res.json();
+      console.log("[DEBUG] API response:", JSON.stringify(data).slice(0, 300));
       if (!res.ok) throw new Error(data.error || "فشل التوليد");
       const questions = Array.isArray(data.questions) ? data.questions : [];
       if (questions.length === 0) throw new Error("لم يتم توليد أي أسئلة، حاول مرة أخرى.");
@@ -233,7 +234,7 @@ export default function ConfigPage({ session, onQuizReady, onBack }) {
               <circle cx="12" cy="12" r="10" strokeOpacity="0.2"/>
               <path d="M12 2A10 10 0 0 1 22 12"/>
             </svg>
-            الذكاء الاصطناعي يجهز أسئلتك…
+            الذكاء الاصطناعي يبني أسئلتك…
           </>
         ) : (
           <>
