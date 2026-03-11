@@ -1,6 +1,7 @@
 // ResultsPage.jsx — Fixed: scoring normalization + branded PDF export
 
 import React, { useState, useMemo } from "react";
+import html2pdf from "html2pdf.js";
 
 function scoreColor(pct) {
   if (pct >= 80) return "#3DBF7A";
@@ -36,26 +37,41 @@ function feedbackLine(pct) {
  * so every MCQ/TF answer is marked wrong.
  */
 function resolveCorrectIndex(q, isTF) {
-  const opts = q.options || (isTF ? ["صحيح", "خاطئ"] : []);
-  const raw = q.correctAnswer;
+  // Build options array the same way QuizPage does
+  let opts;
+  if (isTF) {
+    opts = ["صحيح", "خاطئ"];
+  } else if (q.options && !Array.isArray(q.options)) {
+    opts = Object.values(q.options); // {"أ":"x","ب":"y"} → ["x","y"]
+  } else {
+    opts = q.options || [];
+  }
 
-  // Already a valid index
+  // AI returns "answer" as a key like "أ"/"ب"/"ج"/"د"; fall back to correctAnswer
+  const raw = q.answer ?? q.correctAnswer;
+
+  // Already a valid numeric index
   if (typeof raw === "number" && raw >= 0 && raw < opts.length) return raw;
 
-  // Numeric string ("0", "1", …)
+  // Numeric string ("0","1",…)
   if (typeof raw === "string" && /^\d+$/.test(raw.trim())) {
     const n = parseInt(raw.trim(), 10);
     if (n >= 0 && n < opts.length) return n;
   }
 
-  // Boolean for true/false
+  // Arabic letter key "أ"/"ب"/"ج"/"د" — map to index via options object keys
+  if (typeof raw === "string" && q.options && !Array.isArray(q.options)) {
+    const keys = Object.keys(q.options); // ["أ","ب","ج","د"]
+    const idx = keys.indexOf(raw.trim());
+    if (idx !== -1) return idx;
+  }
+
+  // Boolean or Arabic true/false
   if (typeof raw === "boolean") return raw ? 0 : 1;
+  if (raw === "صحيح" || raw === "أ") return 0;
+  if (raw === "خاطئ" || raw === "ب") return 1;
 
-  // Arabic true/false text
-  if (raw === "صحيح") return 0;
-  if (raw === "خاطئ") return 1;
-
-  // Actual answer text — find matching option
+  // Answer text matches one of the option values
   if (typeof raw === "string" && opts.length) {
     const idx = opts.findIndex(
       (o) => o?.trim().toLowerCase() === raw.trim().toLowerCase()
@@ -63,8 +79,7 @@ function resolveCorrectIndex(q, isTF) {
     if (idx !== -1) return idx;
   }
 
-  // Fallback — shouldn't reach here; log it so it's easy to debug
-  console.warn("[ResultsPage] Could not resolve correctAnswer:", raw, "opts:", opts);
+  console.warn("[ResultsPage] Could not resolve answer:", raw, "opts:", opts);
   return -1;
 }
 
@@ -428,25 +443,13 @@ async function exportPDF(questions, userAnswers, grades, isSA, isTF, score, tota
 </body>
 </html>`;
 
-  // ── Load html2pdf.js from CDN if not already loaded ──
-  if (!window.html2pdf) {
-    await new Promise((resolve, reject) => {
-      const s = document.createElement("script");
-      s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
-      s.onload = resolve;
-      s.onerror = () => reject(new Error("فشل تحميل مكتبة PDF"));
-      document.head.appendChild(s);
-    });
-  }
-
-  // ── Render HTML into a hidden off-screen element ──
   const container = document.createElement("div");
   container.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:794px;";
   container.innerHTML = html;
   document.body.appendChild(container);
 
   const dateTag = new Date().toISOString().slice(0, 10);
-  await window.html2pdf()
+  await html2pdf()
     .set({
       margin: 0,
       filename: `نتيجة-الاختبار-${dateTag}.pdf`,
