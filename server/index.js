@@ -86,7 +86,7 @@ app.use("/api", (req, res) => {
 });
 
 // ─── Start server ─────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
+app.listen(PORT,"0.0.0.0", () => {
   console.log(`✅ الخادم يعمل على المنفذ ${PORT}`);
   console.log("API KEY:", process.env.ANTHROPIC_API_KEY ? `موجود - يبدأ بـ ${process.env.ANTHROPIC_API_KEY.slice(0,10)}` : "مفقود ✗");
   console.log(`🔗 http://localhost:${PORT}/api/health`);
