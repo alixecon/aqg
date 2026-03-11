@@ -10,6 +10,9 @@ const generateRoutes = require("./routes/generate");
 const gradeRoutes    = require("./routes/grade");
 
 const app = express();
+// server/index.js — بعد const app = express();
+const helmet = require("helmet");
+app.use(helmet());
 const PORT = process.env.PORT || 3001;
 
 const IS_PROD    = process.env.NODE_ENV === "production";
@@ -18,7 +21,7 @@ const CLIENT_DIR = path.join(__dirname, "public"); // built React output
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 // Dev: allow Vite dev server. Prod: same origin (Express serves the SPA).
 const corsOptions = IS_PROD
-  ? { origin: process.env.ALLOWED_ORIGIN || true }
+  ? { origin: process.env.ALLOWED_ORIGIN || "https://aq.up.railway.app" }
   : { origin: "http://localhost:5173" };
 app.use(cors(corsOptions));
 
@@ -33,6 +36,17 @@ if (!fs.existsSync(uploadsDir)) {
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
 app.use("/api/upload",   uploadRoutes);
+// server/index.js — أضف هذا قبل app.use("/api/generate")
+const rateLimit = require("express-rate-limit");
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 دقيقة
+  max: 10,                   // 10 طلبات فقط لكل IP
+  message: { error: "طلبات كثيرة جداً، انتظر قليلاً." },
+});
+
+app.use("/api/generate", apiLimiter);
+app.use("/api/grade",    apiLimiter);
 app.use("/api/generate", generateRoutes);
 app.use("/api/grade",    gradeRoutes);
 
