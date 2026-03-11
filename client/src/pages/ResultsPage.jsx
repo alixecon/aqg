@@ -1,7 +1,6 @@
 // ResultsPage.jsx — Fixed: scoring normalization + branded PDF export
 
 import React, { useState, useMemo } from "react";
-import html2pdf from "html2pdf.js";
 
 function scoreColor(pct) {
   if (pct >= 80) return "#3DBF7A";
@@ -83,386 +82,112 @@ function resolveCorrectIndex(q, isTF) {
   return -1;
 }
 
-// ─── PDF Export ───────────────────────────────────────────────────────────────
+// ─── PDF Export (html2pdf.js — branded HTML → PDF) ───────────────────────────
 
 async function exportPDF(questions, userAnswers, grades, isSA, isTF, score, total, pct) {
-  const dateStr = new Date().toLocaleDateString("ar-SA", {
-    year: "numeric", month: "long", day: "numeric",
-  });
+  const html2pdf = (await import("html2pdf.js")).default;
 
-  const gradeColor = pct >= 80 ? "#3DBF7A" : pct >= 60 ? "#F59E0B" : "#E05C5C";
-  const gradeBg    = pct >= 80 ? "#0d2e1e" : pct >= 60 ? "#2d1f06" : "#2e0d0d";
+  const dateStr   = new Date().toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" });
+  const gradeColor = pct >= 80 ? "#15803d" : pct >= 60 ? "#b45309" : "#b91c1c";
+  const gradeBg    = pct >= 80 ? "#f0fdf4" : pct >= 60 ? "#fffbeb" : "#fef2f2";
+  const gradeBorder= pct >= 80 ? "#bbf7d0" : pct >= 60 ? "#fde68a" : "#fecaca";
 
   const questionRows = questions.map((q, i) => {
-    const ans  = userAnswers[i];
-    const opts = q.options || (isTF ? ["صحيح", "خاطئ"] : []);
-    const correct = resolveCorrectIndex(q, isTF);
-    const verdict = isSA
-      ? (grades[i]?.verdict || "wrong")
-      : ans?.picked === correct ? "correct" : "wrong";
-
-    const isCorrect  = verdict === "correct";
-    const isPartial  = verdict === "partial";
-    const rowColor   = isCorrect ? "#3DBF7A" : isPartial ? "#F59E0B" : "#E05C5C";
-    const rowBg      = isCorrect ? "#0a1f14" : isPartial ? "#1f1508" : "#1f0a0a";
-    const statusIcon = isCorrect ? "✓" : isPartial ? "~" : "✗";
-    const statusText = isCorrect ? "صحيح" : isPartial ? "جزئي" : "خاطئ";
-
-    const userText = isSA
-      ? (ans?.text || "—")
-      : (opts[ans?.picked] || "—");
-
-    const correctText = isSA
-      ? q.correctAnswer
-      : (opts[correct] || "—");
+    const opts      = q.options
+      ? (Array.isArray(q.options) ? q.options : Object.values(q.options))
+      : (isTF ? ["صحيح", "خاطئ"] : []);
+    const correct   = resolveCorrectIndex(q, isTF);
+    const ans       = userAnswers[i];
+    const isCorrect = isSA
+      ? grades[i]?.verdict === "correct"
+      : ans?.picked === correct;
+    const userText    = isSA ? (ans?.text || "—") : (opts[ans?.picked] ?? "—");
+    const correctText = isSA ? (q.answer || q.correctAnswer || "—") : (opts[correct] ?? "—");
 
     return `
-      <div class="q-card" style="border-color:${rowColor}22; background:${rowBg};">
-        <div class="q-header">
-          <span class="q-badge" style="color:${rowColor}; border-color:${rowColor}44; background:${rowColor}11;">
-            ${statusIcon}
-          </span>
-          <span class="q-num" style="color:${rowColor}">س${i + 1}</span>
-          <span class="q-text">${q.question}</span>
-          <span class="q-verdict" style="color:${rowColor}">${statusText}</span>
+      <div style="border:1px solid #e5e7eb;background:#ffffff;border-radius:8px;margin-bottom:8px;padding:14px;page-break-inside:avoid;border-right:3px solid ${isCorrect ? "#15803d" : "#b91c1c"};">
+        <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;">
+          <span style="color:${isCorrect ? "#15803d" : "#b91c1c"};font-weight:900;font-size:13px;flex-shrink:0;margin-top:2px;">${isCorrect ? "✓" : "✗"}</span>
+          <span style="color:#111827;font-size:13px;font-weight:600;flex:1;line-height:1.6;">${q.question}</span>
         </div>
-
-        <div class="answers">
-          <div class="answer-row" style="background:${rowBg}; border-color:${rowColor}22;">
-            <span class="answer-label">إجابتك:</span>
-            <span class="answer-val" style="color:${isCorrect ? '#3DBF7A' : '#E05C5C'}">${userText}</span>
+        <div style="display:flex;flex-direction:column;gap:5px;padding-right:20px;">
+          <div style="background:${isCorrect ? "#f0fdf4" : "#fef2f2"};border:1px solid ${isCorrect ? "#bbf7d0" : "#fecaca"};border-radius:6px;padding:6px 10px;font-size:12px;">
+            <span style="color:#6b7280;font-weight:700;">إجابتك: </span>
+            <span style="color:${isCorrect ? "#15803d" : "#b91c1c"};font-weight:600;">${userText}</span>
           </div>
-          ${!isCorrect ? `
-          <div class="answer-row" style="background:#0a1f14; border-color:#3DBF7A33;">
-            <span class="answer-label">الإجابة الصحيحة:</span>
-            <span class="answer-val" style="color:#3DBF7A">${correctText}</span>
+          ${!isCorrect ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:6px 10px;font-size:12px;">
+            <span style="color:#6b7280;font-weight:700;">الإجابة الصحيحة: </span>
+            <span style="color:#15803d;font-weight:600;">${correctText}</span>
           </div>` : ""}
-          ${grades[i]?.feedback ? `
-          <div class="feedback-row">
-            <span class="feedback-icon">💬</span>
-            <span>${grades[i].feedback}</span>
-          </div>` : ""}
-          ${q.explanation ? `
-          <div class="explanation-row">
-            <span class="explain-icon">💡</span>
-            <span>${q.explanation}</span>
-          </div>` : ""}
+          ${grades[i]?.feedback ? `<div style="background:#fffbeb;border-right:2px solid #f59e0b;border-radius:4px;padding:6px 10px;font-size:11px;color:#78350f;">💬 ${grades[i].feedback}</div>` : ""}
+          ${q.explanation ? `<div style="background:#f9fafb;border-right:2px solid #d1d5db;border-radius:4px;padding:6px 10px;font-size:11px;color:#6b7280;">💡 ${q.explanation}</div>` : ""}
         </div>
       </div>`;
   }).join("");
+
+  const correctCount = questions.filter((q, i) => {
+    const ans = userAnswers[i];
+    return isSA ? grades[i]?.verdict === "correct" : ans?.picked === resolveCorrectIndex(q, isTF);
+  }).length;
 
   const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8"/>
-  <title>نتيجة الاختبار</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet"/>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Cairo', sans-serif;
-      background: #0E1117;
-      color: #E8EAF0;
-      direction: rtl;
-      padding: 2.5rem;
-      font-size: 13px;
-      line-height: 1.7;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-
-    /* ── Header ── */
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-bottom: 1.5rem;
-      border-bottom: 1px solid #2a2f3e;
-      margin-bottom: 2rem;
-    }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-    }
-    .brand-dot {
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      background: #3DBF7A;
-      box-shadow: 0 0 8px #3DBF7A88;
-    }
-    .brand-name {
-      font-size: 1.1rem;
-      font-weight: 900;
-      color: #E8EAF0;
-      letter-spacing: -0.01em;
-    }
-    .date { color: #6B7280; font-size: 0.82rem; }
-
-    /* ── Score hero ── */
-    .score-hero {
-      background: #161B27;
-      border: 1px solid #2a2f3e;
-      border-radius: 16px;
-      padding: 2rem;
-      display: flex;
-      align-items: center;
-      gap: 2rem;
-      margin-bottom: 2rem;
-      position: relative;
-      overflow: hidden;
-    }
-    .score-hero::before {
-      content: '';
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%,-50%);
-      width: 250px; height: 250px;
-      border-radius: 50%;
-      background: radial-gradient(circle, ${gradeColor}18 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .score-ring { position: relative; flex-shrink: 0; }
-    .score-ring svg { display: block; }
-    .score-info-main {
-      font-size: 2rem;
-      font-weight: 900;
-      color: ${gradeColor};
-      line-height: 1;
-    }
-    .score-info-label {
-      font-size: 0.85rem;
-      color: #9CA3AF;
-      margin-top: 0.25rem;
-    }
-    .score-details { flex: 1; }
-    .score-grade {
-      display: inline-block;
-      padding: 0.4rem 1.1rem;
-      border-radius: 100px;
-      font-size: 1.2rem;
-      font-weight: 900;
-      color: ${gradeColor};
-      background: ${gradeBg};
-      border: 1px solid ${gradeColor}44;
-      margin-bottom: 0.6rem;
-    }
-    .score-fraction {
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: #E8EAF0;
-      margin-bottom: 0.4rem;
-    }
-    .score-fraction span { color: ${gradeColor}; }
-    .score-feedback { color: #9CA3AF; font-size: 0.88rem; }
-
-    /* ── Stats bar ── */
-    .stats-bar {
-      display: flex;
-      gap: 0.75rem;
-      margin-bottom: 2rem;
-    }
-    .stat {
-      flex: 1;
-      background: #161B27;
-      border: 1px solid #2a2f3e;
-      border-radius: 12px;
-      padding: 1rem;
-      text-align: center;
-    }
-    .stat-num { font-size: 1.5rem; font-weight: 900; }
-    .stat-lbl { font-size: 0.72rem; color: #6B7280; margin-top: 0.2rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
-
-    /* ── Section title ── */
-    .section-title {
-      font-size: 0.72rem;
-      font-weight: 800;
-      color: #6B7280;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-bottom: 1rem;
-    }
-
-    /* ── Question cards ── */
-    .q-card {
-      border: 1px solid;
-      border-radius: 12px;
-      margin-bottom: 0.85rem;
-      overflow: hidden;
-      page-break-inside: avoid;
-    }
-    .q-header {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.6rem;
-      padding: 0.85rem 1rem;
-    }
-    .q-badge {
-      width: 22px; height: 22px; flex-shrink: 0;
-      border-radius: 50%;
-      border: 1px solid;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.7rem; font-weight: 900;
-      margin-top: 1px;
-    }
-    .q-num { font-size: 0.75rem; font-weight: 800; flex-shrink: 0; margin-top: 3px; }
-    .q-text { flex: 1; font-size: 0.88rem; font-weight: 600; color: #E8EAF0; }
-    .q-verdict { font-size: 0.72rem; font-weight: 800; flex-shrink: 0; margin-top: 3px; }
-
-    .answers {
-      padding: 0 1rem 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.45rem;
-    }
-    .answer-row {
-      display: flex;
-      gap: 0.5rem;
-      align-items: flex-start;
-      padding: 0.45rem 0.7rem;
-      border-radius: 8px;
-      border: 1px solid;
-      font-size: 0.83rem;
-    }
-    .answer-label { font-weight: 700; color: #9CA3AF; flex-shrink: 0; }
-    .answer-val   { font-weight: 600; }
-    .feedback-row {
-      display: flex;
-      gap: 0.5rem;
-      padding: 0.55rem 0.7rem;
-      background: #1E2235;
-      border-right: 3px solid #F59E0B;
-      border-radius: 6px;
-      font-size: 0.82rem;
-      color: #C9CED8;
-      line-height: 1.6;
-    }
-    .feedback-icon { flex-shrink: 0; }
-    .explanation-row {
-      display: flex;
-      gap: 0.5rem;
-      padding: 0.55rem 0.7rem;
-      background: #1A2030;
-      border-right: 3px solid #2a3a5e;
-      border-radius: 6px;
-      font-size: 0.82rem;
-      color: #9CA3AF;
-      line-height: 1.6;
-    }
-    .explain-icon { flex-shrink: 0; }
-
-    /* ── Footer ── */
-    .footer {
-      margin-top: 3rem;
-      padding-top: 1.2rem;
-      border-top: 1px solid #2a2f3e;
-      display: flex;
-      justify-content: space-between;
-      color: #4B5563;
-      font-size: 0.72rem;
-    }
-
-    @media print {
-      body { background: #0E1117 !important; }
-      .q-card { page-break-inside: avoid; }
-    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Cairo',sans-serif;background:#ffffff;color:#111827;direction:rtl;padding:32px;font-size:13px;line-height:1.7;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <div class="brand">
-      <div class="brand-dot"></div>
-      <span class="brand-name">صانع الاختبارات</span>
+  <!-- Header: brand dot + name, date -->
+  <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:14px;border-bottom:1px solid #e5e7eb;margin-bottom:24px;">
+    <div style="display:flex;align-items:center;gap:7px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:#15803d;"></div>
+      <span style="font-size:14px;font-weight:900;color:#111827;">صانع الاختبارات</span>
     </div>
-    <span class="date">${dateStr}</span>
+    <span style="color:#9ca3af;font-size:11px;">${dateStr}</span>
   </div>
 
-  <div class="score-hero">
-    <div class="score-ring">
-      <svg width="110" height="110" viewBox="0 0 110 110" style="transform:rotate(-90deg)">
-        <circle cx="55" cy="55" r="46" fill="none" stroke="#1E2235" stroke-width="8"/>
-        <circle cx="55" cy="55" r="46" fill="none" stroke="${gradeColor}" stroke-width="8"
-          stroke-linecap="round"
-          stroke-dasharray="${2 * Math.PI * 46}"
-          stroke-dashoffset="${2 * Math.PI * 46 * (1 - pct / 100)}"/>
-      </svg>
-      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-        <span style="font-size:1.6rem;font-weight:900;color:${gradeColor};line-height:1">${pct}٪</span>
-        <span style="font-size:0.7rem;color:#6B7280;margin-top:2px">${score}/${total}</span>
-      </div>
+  <!-- Score summary -->
+  <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;gap:20px;">
+    <div style="text-align:center;flex-shrink:0;">
+      <div style="font-size:36px;font-weight:900;color:${gradeColor};line-height:1;">${pct}٪</div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:2px;">${score} / ${total}</div>
     </div>
-
-    <div class="score-details">
-      <div class="score-grade">${scoreLabel(pct)}</div>
-      <div class="score-fraction">
-        أجبت على <span>${score}</span> من <span>${total}</span> سؤالاً
-      </div>
-      <p class="score-feedback">${feedbackLine(pct)}</p>
+    <div style="width:1px;height:52px;background:#e5e7eb;flex-shrink:0;"></div>
+    <div>
+      <div style="display:inline-block;padding:3px 12px;border-radius:100px;font-size:13px;font-weight:800;color:${gradeColor};background:${gradeBg};border:1px solid ${gradeBorder};margin-bottom:6px;">${scoreLabel(pct)}</div>
+      <div style="font-size:13px;color:#374151;">${feedbackLine(pct)}</div>
+    </div>
+    <div style="margin-right:auto;display:flex;gap:12px;text-align:center;">
+      <div><div style="font-size:18px;font-weight:900;color:#15803d;">${correctCount}</div><div style="font-size:10px;color:#9ca3af;">صحيح</div></div>
+      <div><div style="font-size:18px;font-weight:900;color:#b91c1c;">${total - correctCount}</div><div style="font-size:10px;color:#9ca3af;">خاطئ</div></div>
     </div>
   </div>
 
-  <div class="stats-bar">
-    <div class="stat">
-      <div class="stat-num" style="color:#3DBF7A">${questions.filter((q,i) => {
-        const ans = userAnswers[i];
-        if (!ans) return false;
-        if (isSA) return grades[i]?.verdict === "correct";
-        return ans.picked === resolveCorrectIndex(q, isTF);
-      }).length}</div>
-      <div class="stat-lbl">إجابات صحيحة</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num" style="color:#E05C5C">${questions.filter((q,i) => {
-        const ans = userAnswers[i];
-        if (!ans) return false;
-        if (isSA) return grades[i]?.verdict === "wrong";
-        return ans.picked !== resolveCorrectIndex(q, isTF);
-      }).length}</div>
-      <div class="stat-lbl">إجابات خاطئة</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num" style="color:#6B7280">${questions.filter((_,i) => !userAnswers[i]).length}</div>
-      <div class="stat-lbl">بدون إجابة</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num" style="color:#E8EAF0">${total}</div>
-      <div class="stat-lbl">إجمالي الأسئلة</div>
-    </div>
-  </div>
+  <!-- Section label -->
+  <div style="font-size:10px;font-weight:800;color:#9ca3af;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">مراجعة الأسئلة</div>
 
-  <div class="section-title">مراجعة الأسئلة</div>
   ${questionRows}
 
-  <div class="footer">
-    <span>صانع الاختبارات — تصدير تلقائي بالذكاء الاصطناعي</span>
+  <!-- Footer -->
+  <div style="margin-top:28px;padding-top:12px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;color:#9ca3af;font-size:10px;">
+    <span>صانع الاختبارات</span>
     <span>${dateStr}</span>
   </div>
 
-</body>
-</html>`;
+</body></html>`;
 
   const container = document.createElement("div");
-  // visibility:hidden blocks html2canvas — use clip+overflow instead
-  container.style.cssText = [
-    "position:absolute",
-    "top:0",
-    "left:0",
-    "width:794px",
-    "max-height:0",
-    "overflow:hidden",
-    "pointer-events:none",
-    "z-index:-9999",
-  ].join(";");
+  container.style.cssText = "position:absolute;top:0;left:0;width:794px;max-height:0;overflow:hidden;pointer-events:none;z-index:-9999;";
   container.innerHTML = html;
   document.body.appendChild(container);
-
-  // Temporarily expand so html2canvas can measure full content
   container.style.maxHeight = "none";
   container.style.overflow  = "visible";
 
-  // Wait for Cairo font to load
   await document.fonts.ready;
   await new Promise((r) => setTimeout(r, 300));
 
@@ -472,15 +197,7 @@ async function exportPDF(questions, userAnswers, grades, isSA, isTF, score, tota
       margin: [8, 8, 8, 8],
       filename: `نتيجة-الاختبار-${dateTag}.pdf`,
       image: { type: "jpeg", quality: 0.98 },
-      html2canvas: {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#0E1117",
-        logging: false,
-        windowWidth: 794,
-        scrollX: 0,
-        scrollY: 0,
-      },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false, windowWidth: 794, scrollX: 0, scrollY: 0 },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
       pagebreak: { mode: ["avoid-all", "css"] },
     })

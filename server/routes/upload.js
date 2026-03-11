@@ -25,8 +25,17 @@ async function extractText(filePath, extension) {
   }
 }
 
+/**
+ * Estimate page count from character count.
+ * Arabic text averages ~1800–2200 chars/page (A4, normal font).
+ * We use 2000 as a balanced middle ground.
+ */
+function estimatePageCount(charCount) {
+  return Math.max(1, Math.ceil(charCount / 2000));
+}
+
 // POST /api/upload
-// Returns sessionId + preview instead of full text
+// Returns sessionId + preview + estimated pageCount
 router.post(
   "/",
   (req, res, next) => {
@@ -41,7 +50,6 @@ router.post(
     }
 
     const filePath    = req.file.path;
-    // Fix: multer reads originalname as latin1 — decode to UTF-8 for Arabic filenames
     const originalName = Buffer.from(req.file.originalname, "latin1").toString("utf8");
     const extension   = path.extname(originalName).toLowerCase();
 
@@ -50,8 +58,8 @@ router.post(
       const cleanText = normalizeText(rawText);
       cleanupFile(filePath);
 
-      // Store text server-side; return only sessionId + preview to client
       const sessionId = createSession(cleanText, originalName);
+      const pageCount = estimatePageCount(cleanText.length);
 
       return res.status(200).json({
         success:   true,
@@ -59,14 +67,13 @@ router.post(
         fileName:  originalName,
         fileType:  extension,
         charCount: cleanText.length,
-        // First 400 chars for client-side preview accordion
+        pageCount,
         preview:   cleanText.slice(0, 400).trimEnd() + (cleanText.length > 400 ? "…" : ""),
       });
     } catch (err) {
       cleanupFile(filePath);
       console.error("[upload route]", err.message);
 
-      // Friendlier message for scanned PDFs
       const isScanned = err.message.includes("قصير جداً") || err.message.includes("كافٍ");
       const errorMsg  = isScanned
         ? "لم يُعثَر على نص في الملف. إذا كان ملفك ممسوحاً ضوئياً (Scanned PDF)، حوّله أولاً إلى PDF نصي عبر Adobe Acrobat أو Google Drive."

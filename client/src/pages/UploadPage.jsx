@@ -1,8 +1,4 @@
 // UploadPage.jsx
-// الفلسفة: صفحة واحدة، فعل واحد، لا ادعاءات
-// المستخدم يرى: عنوان + منطقة رفع + شرح بسيط
-// الإقناع يأتي من سهولة الاستخدام، لا من النص
-
 import React, { useState, useRef } from "react";
 
 const FORMATS = [
@@ -11,17 +7,112 @@ const FORMATS = [
   { icon: "📊", label: "PowerPoint" },
 ];
 
+// ─── Page cap thresholds ───────────────────────────────────────────────────────
+const PAGE_IDEAL = 15;   // ✅ green — ideal range
+const PAGE_WARN  = 30;   // ⚠️ yellow — warn but allow
+const PAGE_BLOCK = 50;   // ❌ red — block
+
+function PageWarning({ pageCount, onContinue, onDiscard }) {
+  const isBlocked = pageCount > PAGE_BLOCK;
+
+  return (
+    <div className="anim-fade" style={{
+      borderRadius: "var(--r2)",
+      border: `1px solid ${isBlocked ? "rgba(224,92,92,0.4)" : "rgba(245,158,11,0.4)"}`,
+      background: isBlocked ? "rgba(224,92,92,0.06)" : "rgba(245,158,11,0.06)",
+      padding: "1.5rem",
+      display: "flex", flexDirection: "column", gap: "1.25rem",
+    }}>
+      {/* Icon + title */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "0.85rem" }}>
+        <span style={{ fontSize: "1.5rem", lineHeight: 1, flexShrink: 0 }}>
+          {isBlocked ? "🚫" : "⚠️"}
+        </span>
+        <div>
+          <div style={{
+            fontWeight: 800, fontSize: "0.97rem",
+            color: isBlocked ? "#F09090" : "#FCD34D",
+            marginBottom: "0.35rem",
+            fontFamily: "Almarai, sans-serif",
+          }}>
+            {isBlocked
+              ? `الملف كبير جداً (≈${pageCount} صفحة)`
+              : `ملف طويل نسبياً (≈${pageCount} صفحة)`}
+          </div>
+          <p style={{
+            fontSize: "0.85rem", color: "var(--muted)",
+            lineHeight: 1.65, margin: 0,
+            fontFamily: "Almarai, sans-serif",
+          }}>
+            {isBlocked
+              ? `الحد الأقصى الموصى به هو ${PAGE_BLOCK} صفحة. الملفات الأكبر تُنتج أسئلة أضعف وتستهلك وقتاً أطول. قسّم الملف واختر الفصل الذي تريد مراجعته.`
+              : `الجودة المثلى تكون مع ملفات حتى ${PAGE_IDEAL} صفحة. يمكنك المتابعة، لكن قد تكون الأسئلة أقل دقةً في الأجزاء البعيدة.`}
+          </p>
+        </div>
+      </div>
+
+      {/* Quality indicator */}
+      <div style={{
+        display: "flex", gap: "0.4rem", alignItems: "center",
+        padding: "0.6rem 0.9rem",
+        background: "var(--ink-700)", borderRadius: "var(--r)",
+        fontSize: "0.78rem", color: "var(--muted)",
+        fontFamily: "Almarai, sans-serif",
+      }}>
+        <span>جودة الأسئلة المتوقعة:</span>
+        <div style={{ display: "flex", gap: "3px", marginRight: "0.25rem" }}>
+          {[1,2,3,4,5].map(i => (
+            <div key={i} style={{
+              width: 22, height: 6, borderRadius: 3,
+              background: isBlocked
+                ? (i <= 1 ? "#E05C5C" : "var(--border)")
+                : (i <= (pageCount > 40 ? 2 : 3) ? "#F59E0B" : "var(--border)"),
+              transition: "background 0.2s",
+            }}/>
+          ))}
+        </div>
+        <span style={{ color: isBlocked ? "#F09090" : "#FCD34D", fontWeight: 700 }}>
+          {isBlocked ? "ضعيفة" : pageCount > 40 ? "مقبولة" : "جيدة"}
+        </span>
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: "flex", gap: "0.65rem" }}>
+        <button
+          onClick={onDiscard}
+          className="btn btn-ghost"
+          style={{ flex: 1, padding: "0.75rem", borderRadius: "var(--r)", fontSize: "0.88rem" }}
+        >
+          رفع ملف آخر
+        </button>
+        {!isBlocked && (
+          <button
+            onClick={onContinue}
+            className="btn btn-accent"
+            style={{ flex: 2, padding: "0.75rem", borderRadius: "var(--r)", fontSize: "0.88rem" }}
+          >
+            متابعة على أي حال
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function UploadPage({ onFileReady }) {
-  const [dragging, setDragging] = useState(false);
+  const [dragging,  setDragging]  = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [pct, setPct]           = useState(0);
-  const [error, setError]       = useState("");
-  const [fileName, setFileName] = useState("");
+  const [pct,       setPct]       = useState(0);
+  const [error,     setError]     = useState("");
+  const [fileName,  setFileName]  = useState("");
+  // Pending data when page warning is shown
+  const [pendingData, setPendingData] = useState(null);
   const inputRef = useRef(null);
 
   async function upload(file) {
     if (!file) return;
-    setError(""); setUploading(true); setPct(0); setFileName(file.name);
+    setError(""); setUploading(true); setPct(0);
+    setFileName(file.name); setPendingData(null);
 
     const form = new FormData();
     form.append("file", file);
@@ -35,9 +126,29 @@ export default function UploadPage({ onFileReady }) {
       setPct(100);
       try {
         const data = JSON.parse(xhr.responseText);
-        if (xhr.status !== 200) { setError(data.error || "رفع الملف فشل، حاول مرة ثانية"); setUploading(false); return; }
-        setTimeout(() => { setUploading(false); onFileReady(data); }, 300);
-      } catch { setError("استجابة غير متوقعة من الخادم"); setUploading(false); }
+        if (xhr.status !== 200) {
+          setError(data.error || "رفع الملف فشل، حاول مرة ثانية");
+          setUploading(false);
+          return;
+        }
+
+        setUploading(false);
+
+        const pages = data.pageCount || 1;
+
+        // ✅ Ideal: proceed immediately
+        if (pages <= PAGE_IDEAL) {
+          onFileReady(data);
+          return;
+        }
+
+        // ⚠️ Warn or ❌ Block: show warning first
+        setPendingData(data);
+
+      } catch {
+        setError("استجابة غير متوقعة من الخادم");
+        setUploading(false);
+      }
     };
 
     xhr.onerror = () => { setError("تعذّر الاتصال بالخادم"); setUploading(false); };
@@ -51,16 +162,43 @@ export default function UploadPage({ onFileReady }) {
     if (f) upload(f);
   }
 
+  function handleDiscard() {
+    setPendingData(null);
+    setFileName("");
+  }
+
+  // Show page warning if we have pending data
+  if (pendingData) {
+    return (
+      <div className="anim-up" style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
+        <div style={{ textAlign: "center", paddingTop: "1rem" }}>
+          <h1 style={{
+            fontSize: "clamp(2rem, 5vw, 2.9rem)",
+            fontWeight: 900, letterSpacing: "-0.02em",
+            color: "var(--white)", marginBottom: "1rem", lineHeight: 1.2,
+          }}>
+            حوّل ملفك إلى اختبار<br />
+            <span style={{ color: "var(--accent)" }}>في ثوانٍ</span>
+          </h1>
+        </div>
+        <PageWarning
+          pageCount={pendingData.pageCount}
+          onContinue={() => { onFileReady(pendingData); setPendingData(null); }}
+          onDiscard={handleDiscard}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="anim-up" style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
 
-      {/* ── Hero — قصير ومباشر ── */}
+      {/* ── Hero ── */}
       <div style={{ textAlign: "center", paddingTop: "1rem" }}>
         <h1 style={{
           fontSize: "clamp(2rem, 5vw, 2.9rem)",
           fontWeight: 900, letterSpacing: "-0.02em",
-          color: "var(--white)", marginBottom: "1rem",
-          lineHeight: 1.2,
+          color: "var(--white)", marginBottom: "1rem", lineHeight: 1.2,
         }}>
           حوّل ملفك إلى اختبار<br />
           <span style={{ color: "var(--accent)" }}>في ثوانٍ</span>
@@ -70,7 +208,7 @@ export default function UploadPage({ onFileReady }) {
         </p>
       </div>
 
-      {/* ── Drop Zone — الفعل الوحيد ── */}
+      {/* ── Drop Zone ── */}
       <div
         className={`drop-zone${dragging ? " over" : ""}${uploading ? " done" : ""}`}
         onClick={() => !uploading && inputRef.current?.click()}
@@ -88,7 +226,6 @@ export default function UploadPage({ onFileReady }) {
 
         {uploading ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1.25rem" }}>
-            {/* اسم الملف */}
             <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
               <div style={{
                 width: 42, height: 42, borderRadius: 10,
@@ -105,8 +242,6 @@ export default function UploadPage({ onFileReady }) {
                 <div style={{ fontSize: "0.78rem", color: "var(--muted)" }}>جاري المعالجة…</div>
               </div>
             </div>
-
-            {/* Progress */}
             <div style={{ width: "100%", maxWidth: 320 }}>
               <div className="progress-track">
                 <div className="progress-fill" style={{ width: `${pct}%` }} />
@@ -119,7 +254,6 @@ export default function UploadPage({ onFileReady }) {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1.25rem" }}>
-            {/* Upload icon */}
             <div style={{
               width: 64, height: 64, borderRadius: 18,
               background: "var(--ink-700)", border: "1px solid var(--border-hi)",
@@ -131,7 +265,6 @@ export default function UploadPage({ onFileReady }) {
                 <line x1="12" y1="3" x2="12" y2="15"/>
               </svg>
             </div>
-
             <div style={{ textAlign: "center" }}>
               <p style={{ fontWeight: 700, fontSize: "1rem", color: "var(--white)", marginBottom: "0.35rem" }}>
                 {dragging ? "أفلت الملف هنا" : "اسحب ملفك أو انقر للاختيار"}
@@ -140,8 +273,6 @@ export default function UploadPage({ onFileReady }) {
                 النص لا يُحفظ · يُحذف فور المعالجة
               </p>
             </div>
-
-            {/* Formats */}
             <div style={{ display: "flex", gap: "0.6rem" }}>
               {FORMATS.map(f => (
                 <span key={f.label} style={{
@@ -153,6 +284,17 @@ export default function UploadPage({ onFileReady }) {
                   <span>{f.icon}</span> {f.label}
                 </span>
               ))}
+            </div>
+
+            {/* Page cap hint */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: "0.4rem",
+              fontSize: "0.74rem", color: "var(--muted)", opacity: 0.7,
+            }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span>الجودة المثلى: حتى {PAGE_IDEAL} صفحة · الحد الأقصى: {PAGE_BLOCK} صفحة</span>
             </div>
           </div>
         )}
@@ -168,15 +310,15 @@ export default function UploadPage({ onFileReady }) {
         </div>
       )}
 
-      {/* ── الإثبات عبر الشفافية لا الادعاء ── */}
+      {/* ── Trust signals ── */}
       <div style={{
         display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.75rem",
         borderTop: "1px solid var(--border)", paddingTop: "2rem",
       }}>
         {[
-          { icon: "🗑️", title: "خصوصيتك أولاً",   body: "ملفك يُحذف تلقائياً بعد انشاء الاختبار مباشرةً" },
-          { icon: "⚡", title: "بدون تسجيل",        body: "لا حساب ولا بريد ولا كلمة مرور — ابدأ فوراً" },
-          { icon: "🎯", title: "أسئلة من محتواك",   body: "الذكاء الاصطناعي يقرأ نصك ويبني أسئلة حقيقية منه" },
+          { icon: "🗑️", title: "خصوصيتك أولاً",  body: "ملفك يُحذف تلقائياً بعد انشاء الاختبار مباشرةً" },
+          { icon: "⚡", title: "بدون تسجيل",       body: "لا حساب ولا بريد ولا كلمة مرور — ابدأ فوراً" },
+          { icon: "🎯", title: "أسئلة من محتواك",  body: "الذكاء الاصطناعي يقرأ نصك ويبني أسئلة حقيقية منه" },
         ].map(c => (
           <div key={c.title} style={{ textAlign: "center", padding: "1rem 0.5rem" }}>
             <div style={{ fontSize: "1.4rem", marginBottom: "0.5rem" }}>{c.icon}</div>
