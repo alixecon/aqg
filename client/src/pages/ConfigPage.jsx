@@ -30,7 +30,9 @@ export default function ConfigPage({ session, onQuizReady, onBack }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "فشل التوليد");
-      onQuizReady(data.questions, { questionType: type, questionCount: count, difficulty: diff });
+      const questions = Array.isArray(data.questions) ? data.questions : [];
+      if (questions.length === 0) throw new Error("لم يتم توليد أي أسئلة، حاول مرة أخرى.");
+      onQuizReady(questions, { questionType: type, questionCount: count, difficulty: diff });
     } catch (e) {
       setError(e.message || "حدث خطأ غير متوقع");
       setLoading(false);
@@ -231,7 +233,7 @@ export default function ConfigPage({ session, onQuizReady, onBack }) {
               <circle cx="12" cy="12" r="10" strokeOpacity="0.2"/>
               <path d="M12 2A10 10 0 0 1 22 12"/>
             </svg>
-            الذكاء الاصطناعي يبني اختبارك
+            الذكاء الاصطناعي يجهز أسئلتك…
           </>
         ) : (
           <>
