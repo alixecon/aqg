@@ -199,7 +199,7 @@ export default function QuizSettings({
               className="w-5 h-5 rounded-full border-2 border-white border-t-transparent inline-block"
               style={{ animation: "spin 0.9s linear infinite" }}
             />
-            جارٍ توليد الاختبار...
+            تتم صياغة الاسئلة...
           </>
         ) : (
           <>
@@ -207,7 +207,7 @@ export default function QuizSettings({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            توليد الاختبار
+            اختبرني 
           </>
         )}
       </button>
