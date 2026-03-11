@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: arabic-quiz-generator
+    runtime: node
+    region: frankfurt          # closest to MENA region
+    plan: free
+    buildCommand: npm install --prefix server && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ANTHROPIC_API_KEY
+        sync: false            # set manually in Render dashboard
+      - key: MAX_FILE_SIZE_MB
+        value: "20"
