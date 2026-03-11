@@ -444,18 +444,45 @@ async function exportPDF(questions, userAnswers, grades, isSA, isTF, score, tota
 </html>`;
 
   const container = document.createElement("div");
-  container.style.cssText = "position:absolute;top:0;left:0;width:794px;visibility:hidden;pointer-events:none;z-index:-1;";
+  // visibility:hidden blocks html2canvas — use clip+overflow instead
+  container.style.cssText = [
+    "position:absolute",
+    "top:0",
+    "left:0",
+    "width:794px",
+    "max-height:0",
+    "overflow:hidden",
+    "pointer-events:none",
+    "z-index:-9999",
+  ].join(";");
   container.innerHTML = html;
   document.body.appendChild(container);
+
+  // Temporarily expand so html2canvas can measure full content
+  container.style.maxHeight = "none";
+  container.style.overflow  = "visible";
+
+  // Wait for Cairo font to load
+  await document.fonts.ready;
+  await new Promise((r) => setTimeout(r, 300));
 
   const dateTag = new Date().toISOString().slice(0, 10);
   await html2pdf()
     .set({
-      margin: 0,
+      margin: [8, 8, 8, 8],
       filename: `نتيجة-الاختبار-${dateTag}.pdf`,
-      image: { type: "jpeg", quality: 0.97 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#0E1117" },
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#0E1117",
+        logging: false,
+        windowWidth: 794,
+        scrollX: 0,
+        scrollY: 0,
+      },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: ["avoid-all", "css"] },
     })
     .from(container)
     .save();
