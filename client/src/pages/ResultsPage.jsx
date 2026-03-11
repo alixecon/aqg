@@ -1,6 +1,8 @@
 // ResultsPage.jsx — Fixed: scoring normalization + branded PDF export
 
 import React, { useState, useMemo } from "react";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 
 function scoreColor(pct) {
   if (pct >= 80) return "#3DBF7A";
@@ -85,11 +87,6 @@ function resolveCorrectIndex(q, isTF) {
 // ─── PDF Export (html2pdf.js — branded HTML → PDF) ───────────────────────────
 
 async function exportPDF(questions, userAnswers, grades, isSA, isTF, score, total, pct) {
-  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-    import("html2canvas"),
-    import("jspdf").then(m => ({ jsPDF: m.jsPDF || m.default })),
-  ]);
-
   const dateStr   = new Date().toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" });
   const gradeColor = pct >= 80 ? "#15803d" : pct >= 60 ? "#b45309" : "#b91c1c";
   const gradeBg    = pct >= 80 ? "#f0fdf4" : pct >= 60 ? "#fffbeb" : "#fef2f2";
