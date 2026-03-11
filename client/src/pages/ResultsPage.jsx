@@ -70,7 +70,7 @@ function resolveCorrectIndex(q, isTF) {
 
 // ─── PDF Export ───────────────────────────────────────────────────────────────
 
-function exportPDF(questions, userAnswers, grades, isSA, isTF, score, total, pct) {
+async function exportPDF(questions, userAnswers, grades, isSA, isTF, score, total, pct) {
   const dateStr = new Date().toLocaleDateString("ar-SA", {
     year: "numeric", month: "long", day: "numeric",
   });
@@ -425,27 +425,46 @@ function exportPDF(questions, userAnswers, grades, isSA, isTF, score, total, pct
     <span>${dateStr}</span>
   </div>
 
-  <script>
-    window.addEventListener('load', () => {
-      setTimeout(() => window.print(), 300);
-    });
-  </script>
 </body>
 </html>`;
 
-  const win = window.open("", "_blank");
-  if (!win) {
-    alert("يرجى السماح بالنوافذ المنبثقة لتصدير PDF");
-    return;
+  // ── Load html2pdf.js from CDN if not already loaded ──
+  if (!window.html2pdf) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+      s.onload = resolve;
+      s.onerror = () => reject(new Error("فشل تحميل مكتبة PDF"));
+      document.head.appendChild(s);
+    });
   }
-  win.document.write(html);
-  win.document.close();
+
+  // ── Render HTML into a hidden off-screen element ──
+  const container = document.createElement("div");
+  container.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:794px;";
+  container.innerHTML = html;
+  document.body.appendChild(container);
+
+  const dateTag = new Date().toISOString().slice(0, 10);
+  await window.html2pdf()
+    .set({
+      margin: 0,
+      filename: `نتيجة-الاختبار-${dateTag}.pdf`,
+      image: { type: "jpeg", quality: 0.97 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#0E1117" },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    })
+    .from(container)
+    .save();
+
+  document.body.removeChild(container);
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ResultsPage({ questions, userAnswers, grades, config, onRetry }) {
   const [openIdx, setOpenIdx] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
   const isSA = config?.questionType === "shortanswer";
   const isTF = config?.questionType === "truefalse";
@@ -471,8 +490,16 @@ export default function ResultsPage({ questions, userAnswers, grades, config, on
 
   const color = scoreColor(pct);
 
-  function handleExportPDF() {
-    exportPDF(questions, userAnswers, grades, isSA, isTF, score, total, pct);
+  async function handleExportPDF() {
+    setExporting(true);
+    try {
+      await exportPDF(questions, userAnswers, grades, isSA, isTF, score, total, pct);
+    } catch (e) {
+      console.error("[PDF Export]", e);
+      alert("حدث خطأ أثناء التصدير، حاول مرة أخرى.");
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -520,15 +547,21 @@ export default function ResultsPage({ questions, userAnswers, grades, config, on
           </svg>
           اختبر مرة أخرى
         </button>
-        <button onClick={handleExportPDF} className="btn btn-ghost" style={{ padding: "0.9rem 1.25rem", borderRadius: "var(--r)" }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/>
-            <polyline points="10 9 9 9 8 9"/>
-          </svg>
-          تصدير PDF
+        <button onClick={handleExportPDF} disabled={exporting} className="btn btn-ghost" style={{ padding: "0.9rem 1.25rem", borderRadius: "var(--r)", opacity: exporting ? 0.6 : 1 }}>
+          {exporting ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ animation: "spin 1s linear infinite" }}>
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+          )}
+          {exporting ? "جارٍ التصدير…" : "تصدير PDF"}
         </button>
       </div>
 
