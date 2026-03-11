@@ -87,48 +87,103 @@ function resolveCorrectIndex(q, isTF) {
 // ─── PDF Export (html2pdf.js — branded HTML → PDF) ───────────────────────────
 
 async function exportPDF(questions, userAnswers, grades, isSA, isTF, score, total, pct) {
-  const dateStr   = new Date().toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" });
+  const dateStr    = new Date().toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" });
   const gradeColor = pct >= 80 ? "#15803d" : pct >= 60 ? "#b45309" : "#b91c1c";
   const gradeBg    = pct >= 80 ? "#f0fdf4" : pct >= 60 ? "#fffbeb" : "#fef2f2";
-  const gradeBorder= pct >= 80 ? "#bbf7d0" : pct >= 60 ? "#fde68a" : "#fecaca";
+  const gradeBorder= pct >= 80 ? "#86efac" : pct >= 60 ? "#fcd34d" : "#fca5a5";
 
+  // ── Fix: calculate correctCount BEFORE questionRows so it's in scope ──
+  const correctCount = questions.filter((q, i) => {
+    const ans = userAnswers[i];
+    if (!ans) return false;
+    return isSA
+      ? grades[i]?.verdict === "correct"
+      : ans.picked === resolveCorrectIndex(q, isTF);
+  }).length;
+  const wrongCount = total - correctCount;
+
+  // ── Question cards ──
   const questionRows = questions.map((q, i) => {
-    const opts      = q.options
+    const opts        = q.options
       ? (Array.isArray(q.options) ? q.options : Object.values(q.options))
       : (isTF ? ["صحيح", "خاطئ"] : []);
-    const correct   = resolveCorrectIndex(q, isTF);
-    const ans       = userAnswers[i];
-    const isCorrect = isSA
-      ? grades[i]?.verdict === "correct"
-      : ans?.picked === correct;
+    const correct     = resolveCorrectIndex(q, isTF);
+    const ans         = userAnswers[i];
+    const isCorrect   = isSA ? grades[i]?.verdict === "correct" : ans?.picked === correct;
     const userText    = isSA ? (ans?.text || "—") : (opts[ans?.picked] ?? "—");
     const correctText = isSA ? (q.answer || q.correctAnswer || "—") : (opts[correct] ?? "—");
+    const accentColor = isCorrect ? "#15803d" : "#b91c1c";
+    const answerBg    = isCorrect ? "#f0fdf4" : "#fef2f2";
+    const answerBorder= isCorrect ? "#86efac" : "#fca5a5";
 
     return `
-      <div style="border:1px solid #e5e7eb;background:#ffffff;border-radius:8px;margin-bottom:8px;padding:14px;page-break-inside:avoid;border-right:3px solid ${isCorrect ? "#15803d" : "#b91c1c"};">
-        <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;">
-          <span style="color:${isCorrect ? "#15803d" : "#b91c1c"};font-weight:900;font-size:13px;flex-shrink:0;margin-top:2px;">${isCorrect ? "✓" : "✗"}</span>
-          <span style="color:#111827;font-size:13px;font-weight:600;flex:1;line-height:1.6;">${q.question}</span>
+      <div style="
+        background:#fff;
+        border:1px solid #e5e7eb;
+        border-right:3px solid ${accentColor};
+        border-radius:10px;
+        margin-bottom:12px;
+        padding:18px 20px;
+        page-break-inside:avoid;
+      ">
+        <!-- Question row -->
+        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;">
+          <div style="
+            width:22px;height:22px;border-radius:50%;flex-shrink:0;
+            background:${answerBg};border:1.5px solid ${answerBorder};
+            display:flex;align-items:center;justify-content:center;
+            font-size:11px;font-weight:900;color:${accentColor};
+            margin-top:1px;
+          ">${isCorrect ? "✓" : "✗"}</div>
+          <p style="
+            color:#111827;font-size:14px;font-weight:700;
+            line-height:1.85;margin:0;flex:1;
+          ">${q.question}</p>
         </div>
-        <div style="display:flex;flex-direction:column;gap:5px;padding-right:20px;">
-          <div style="background:${isCorrect ? "#f0fdf4" : "#fef2f2"};border:1px solid ${isCorrect ? "#bbf7d0" : "#fecaca"};border-radius:6px;padding:6px 10px;font-size:12px;">
-            <span style="color:#6b7280;font-weight:700;">إجابتك: </span>
-            <span style="color:${isCorrect ? "#15803d" : "#b91c1c"};font-weight:600;">${userText}</span>
+
+        <!-- Answer rows -->
+        <div style="display:flex;flex-direction:column;gap:7px;padding-right:32px;">
+
+          <!-- User answer -->
+          <div style="
+            background:${answerBg};border:1px solid ${answerBorder};
+            border-radius:7px;padding:9px 13px;
+            display:flex;align-items:baseline;gap:8px;
+          ">
+            <span style="font-size:11px;font-weight:800;color:#6b7280;flex-shrink:0;white-space:nowrap;">إجابتك</span>
+            <span style="font-size:13px;font-weight:700;color:${accentColor};line-height:1.7;">${userText}</span>
           </div>
-          ${!isCorrect ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:6px 10px;font-size:12px;">
-            <span style="color:#6b7280;font-weight:700;">الإجابة الصحيحة: </span>
-            <span style="color:#15803d;font-weight:600;">${correctText}</span>
+
+          <!-- Correct answer (only when wrong) -->
+          ${!isCorrect ? `
+          <div style="
+            background:#f0fdf4;border:1px solid #86efac;
+            border-radius:7px;padding:9px 13px;
+            display:flex;align-items:baseline;gap:8px;
+          ">
+            <span style="font-size:11px;font-weight:800;color:#6b7280;flex-shrink:0;white-space:nowrap;">الصحيحة</span>
+            <span style="font-size:13px;font-weight:700;color:#15803d;line-height:1.7;">${correctText}</span>
           </div>` : ""}
-          ${grades[i]?.feedback ? `<div style="background:#fffbeb;border-right:2px solid #f59e0b;border-radius:4px;padding:6px 10px;font-size:11px;color:#78350f;">💬 ${grades[i].feedback}</div>` : ""}
-          ${q.explanation ? `<div style="background:#f9fafb;border-right:2px solid #d1d5db;border-radius:4px;padding:6px 10px;font-size:11px;color:#6b7280;">💡 ${q.explanation}</div>` : ""}
+
+          <!-- AI Feedback (short answer) -->
+          ${grades[i]?.feedback ? `
+          <div style="
+            background:#fffbeb;border-right:3px solid #f59e0b;
+            border-radius:6px;padding:9px 13px;
+            font-size:12px;color:#78350f;line-height:1.75;
+          ">💬 &nbsp;${grades[i].feedback}</div>` : ""}
+
+          <!-- Explanation -->
+          ${q.explanation ? `
+          <div style="
+            background:#f8fafc;border-right:3px solid #cbd5e1;
+            border-radius:6px;padding:9px 13px;
+            font-size:12px;color:#475569;line-height:1.75;
+          ">💡 &nbsp;${q.explanation}</div>` : ""}
+
         </div>
       </div>`;
   }).join("");
-
-  const correctCount = questions.filter((q, i) => {
-    const ans = userAnswers[i];
-    return isSA ? grades[i]?.verdict === "correct" : ans?.picked === resolveCorrectIndex(q, isTF);
-  }).length;
 
   const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -136,60 +191,102 @@ async function exportPDF(questions, userAnswers, grades, isSA, isTF, score, tota
   <meta charset="UTF-8"/>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet"/>
   <style>
-    *{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'Cairo',sans-serif;background:#ffffff;color:#111827;direction:rtl;padding:32px;font-size:13px;line-height:1.7;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: #ffffff;
+      color: #111827;
+      direction: rtl;
+      padding: 36px 40px;
+      font-size: 13px;
+      line-height: 1.75;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
   </style>
 </head>
 <body>
 
-  <!-- Header: brand dot + name, date -->
-  <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:14px;border-bottom:1px solid #e5e7eb;margin-bottom:24px;">
-    <div style="display:flex;align-items:center;gap:7px;">
-      <div style="width:8px;height:8px;border-radius:50%;background:#15803d;"></div>
-      <span style="font-size:14px;font-weight:900;color:#111827;">صانع الاختبارات</span>
+  <!-- ── Header ── -->
+  <div style="
+    display:flex;justify-content:space-between;align-items:center;
+    padding-bottom:16px;border-bottom:2px solid #f3f4f6;margin-bottom:28px;
+  ">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="width:9px;height:9px;border-radius:50%;background:#15803d;"></div>
+      <span style="font-size:15px;font-weight:900;color:#111827;letter-spacing:-0.01em;">صانع الاختبارات</span>
     </div>
-    <span style="color:#9ca3af;font-size:11px;">${dateStr}</span>
+    <span style="color:#9ca3af;font-size:11px;font-weight:600;">${dateStr}</span>
   </div>
 
-  <!-- Score summary -->
-  <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;gap:20px;">
-    <div style="text-align:center;flex-shrink:0;">
-      <div style="font-size:36px;font-weight:900;color:${gradeColor};line-height:1;">${pct}٪</div>
-      <div style="font-size:11px;color:#9ca3af;margin-top:2px;">${score} / ${total}</div>
+  <!-- ── Score Hero ── -->
+  <div style="
+    background:#f9fafb;border:1px solid #e5e7eb;border-radius:14px;
+    padding:24px 28px;margin-bottom:28px;
+    display:flex;align-items:center;gap:24px;
+  ">
+    <!-- Big percentage -->
+    <div style="flex-shrink:0;text-align:center;min-width:90px;">
+      <div style="font-size:48px;font-weight:900;color:${gradeColor};line-height:1;">${pct}٪</div>
+      <div style="font-size:12px;color:#9ca3af;margin-top:4px;font-weight:600;">${score} من ${total}</div>
     </div>
-    <div style="width:1px;height:52px;background:#e5e7eb;flex-shrink:0;"></div>
-    <div>
-      <div style="display:inline-block;padding:3px 12px;border-radius:100px;font-size:13px;font-weight:800;color:${gradeColor};background:${gradeBg};border:1px solid ${gradeBorder};margin-bottom:6px;">${scoreLabel(pct)}</div>
-      <div style="font-size:13px;color:#374151;">${feedbackLine(pct)}</div>
+
+    <!-- Divider -->
+    <div style="width:1px;height:60px;background:#e5e7eb;flex-shrink:0;"></div>
+
+    <!-- Grade + feedback -->
+    <div style="flex:1;">
+      <div style="
+        display:inline-block;padding:4px 14px;border-radius:100px;
+        font-size:14px;font-weight:900;
+        color:${gradeColor};background:${gradeBg};border:1px solid ${gradeBorder};
+        margin-bottom:8px;
+      ">${scoreLabel(pct)}</div>
+      <div style="font-size:13px;color:#4b5563;line-height:1.7;font-weight:600;">${feedbackLine(pct)}</div>
     </div>
-    <div style="margin-right:auto;display:flex;gap:12px;text-align:center;">
-      <div><div style="font-size:18px;font-weight:900;color:#15803d;">${correctCount}</div><div style="font-size:10px;color:#9ca3af;">صحيح</div></div>
-      <div><div style="font-size:18px;font-weight:900;color:#b91c1c;">${total - correctCount}</div><div style="font-size:10px;color:#9ca3af;">خاطئ</div></div>
+
+    <!-- Stats pills -->
+    <div style="display:flex;gap:16px;flex-shrink:0;">
+      <div style="text-align:center;">
+        <div style="font-size:24px;font-weight:900;color:#15803d;line-height:1;">${correctCount}</div>
+        <div style="font-size:10px;color:#9ca3af;font-weight:700;margin-top:3px;text-transform:uppercase;letter-spacing:0.05em;">صحيح</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:24px;font-weight:900;color:#b91c1c;line-height:1;">${wrongCount}</div>
+        <div style="font-size:10px;color:#9ca3af;font-weight:700;margin-top:3px;text-transform:uppercase;letter-spacing:0.05em;">خاطئ</div>
+      </div>
     </div>
   </div>
 
-  <!-- Section label -->
-  <div style="font-size:10px;font-weight:800;color:#9ca3af;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">مراجعة الأسئلة</div>
+  <!-- ── Section label ── -->
+  <div style="
+    font-size:10px;font-weight:800;color:#9ca3af;
+    text-transform:uppercase;letter-spacing:0.12em;margin-bottom:14px;
+  ">مراجعة الأسئلة — ${total} سؤال</div>
 
+  <!-- ── Questions ── -->
   ${questionRows}
 
-  <!-- Footer -->
-  <div style="margin-top:28px;padding-top:12px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;color:#9ca3af;font-size:10px;">
+  <!-- ── Footer ── -->
+  <div style="
+    margin-top:32px;padding-top:14px;border-top:1px solid #f3f4f6;
+    display:flex;justify-content:space-between;
+    color:#9ca3af;font-size:10px;font-weight:600;
+  ">
     <span>صانع الاختبارات</span>
     <span>${dateStr}</span>
   </div>
 
-</body></html>`;
+</body>
+</html>`;
 
-  // Append visibly off-screen — no hiding tricks that confuse canvas capture
   const container = document.createElement("div");
   container.style.cssText = "position:fixed;top:0;right:-9999px;width:794px;background:#ffffff;z-index:-1;";
   container.innerHTML = html;
   document.body.appendChild(container);
 
-  // Wait for Cairo font + layout to settle
   await document.fonts.ready;
-  await new Promise((r) => setTimeout(r, 500));
+  await new Promise((r) => setTimeout(r, 600));
 
   const canvas = await html2canvas(container, {
     scale: 2,
@@ -204,12 +301,12 @@ async function exportPDF(questions, userAnswers, grades, isSA, isTF, score, tota
 
   document.body.removeChild(container);
 
-  const imgData  = canvas.toDataURL("image/jpeg", 0.97);
-  const pdf      = new jsPDF({ unit: "px", format: "a4", orientation: "portrait" });
-  const pageW    = pdf.internal.pageSize.getWidth();
-  const pageH    = pdf.internal.pageSize.getHeight();
-  const imgW     = pageW;
-  const imgH     = (canvas.height * pageW) / canvas.width;
+  const imgData = canvas.toDataURL("image/jpeg", 0.97);
+  const pdf     = new jsPDF({ unit: "px", format: "a4", orientation: "portrait" });
+  const pageW   = pdf.internal.pageSize.getWidth();
+  const pageH   = pdf.internal.pageSize.getHeight();
+  const imgW    = pageW;
+  const imgH    = (canvas.height * pageW) / canvas.width;
 
   let yOffset = 0;
   while (yOffset < imgH) {
@@ -221,6 +318,8 @@ async function exportPDF(questions, userAnswers, grades, isSA, isTF, score, tota
   const dateTag = new Date().toISOString().slice(0, 10);
   pdf.save(`نتيجة-الاختبار-${dateTag}.pdf`);
 }
+
+
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
