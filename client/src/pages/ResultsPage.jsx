@@ -68,8 +68,8 @@ function resolveCorrectIndex(q, isTF) {
 
   // Boolean or Arabic true/false
   if (typeof raw === "boolean") return raw ? 0 : 1;
-  if (raw === "صحيح" || raw === "أ") return 0;
-  if (raw === "خاطئ" || raw === "ب") return 1;
+  if (raw === "صحيح" || raw === "صح" || raw === "أ" || raw === "صواب") return 0;
+  if (raw === "خاطئ" || raw === "خطأ" || raw === "ب" || raw === "غلط") return 1;
 
   // Answer text matches one of the option values
   if (typeof raw === "string" && opts.length) {
@@ -444,7 +444,7 @@ async function exportPDF(questions, userAnswers, grades, isSA, isTF, score, tota
 </html>`;
 
   const container = document.createElement("div");
-  container.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:794px;";
+  container.style.cssText = "position:absolute;top:0;left:0;width:794px;visibility:hidden;pointer-events:none;z-index:-1;";
   container.innerHTML = html;
   document.body.appendChild(container);
 

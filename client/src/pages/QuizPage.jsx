@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 // الخادم يُرجع options كـ object {"أ":"نص","ب":"نص",...}
 // هذه الدالة تحوّله لـ array من النصوص
 function parseOptions(q, isTF) {
-  if (isTF) return ["صحيح", "خاطئ"];
+  if (isTF) return ["صحيح", "خطأ"];
   if (!q?.options) return [];
   if (Array.isArray(q.options)) return q.options;
   return Object.values(q.options); // {"أ":"x","ب":"y"} → ["x","y"]
@@ -14,7 +14,7 @@ function parseCorrectIndex(q, isTF) {
   if (!q) return 0;
   if (isTF) {
     const a = q.answer || q.correctAnswer || "";
-    return (a === "صحيح" || a === true || a === "أ") ? 0 : 1;
+    return (a === "صحيح" || a === "صح" || a === "صواب" || a === true || a === "أ") ? 0 : 1;
   }
   // إذا كان options object، نجد index من المفاتيح
   if (q.options && !Array.isArray(q.options)) {
